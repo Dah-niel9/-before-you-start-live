@@ -4,3 +4,6 @@ This file exists only to trigger the first Workers Build after GitHub was connec
 
 
 Rebuild after shortening Tavily query.
+
+
+Debug build after surfacing live research error details.
