@@ -7,3 +7,5 @@ Rebuild after shortening Tavily query.
 
 
 Debug build after surfacing live research error details.
+
+Debug build after adding safe Tavily/secret error logging.
