@@ -31,14 +31,15 @@ async function handleResearch(request, env) {
     const skills = Array.isArray(profile.skills) ? profile.skills.join(", ") : "";
     const goals = Array.isArray(profile.goals) ? profile.goals.join(", ") : "";
 
-    const query = [
-      `Investigate the online opportunity "${name}" for a person in Nigeria.`,
-      claim ? `Claim seen by the user: "${claim}".` : "",
-      url ? `Official or supplied link: ${url}` : "",
-      "Check current evidence for legitimacy, Nigeria availability, device requirements, KYC/ID requirements, payment methods, withdrawal rules, fees/costs, project/task availability, earning economics, and important risks or catches.",
-      "Prefer official company/platform sources and other high-quality current sources. Clearly separate verified facts from uncertainty, anecdotes, and claims.",
-      `User situation: devices=${devices}; budget=${profile.budgetLabel || ""}; IDs=${ids}; skills=${skills}; experience=${profile.experience || ""}; time=${profile.time || ""}; goal=${goals}.`
-    ].filter(Boolean).join(" ");
+    const queryParts = [
+      `Investigate "${name}" for a person in Nigeria.`,
+      claim ? `Claim: "${claim}".` : "",
+      url ? `Link: ${url}` : "",
+      "Check legitimacy, Nigeria access, requirements, payments, costs, availability, earnings, and risks. Prefer official and current sources."
+    ].filter(Boolean);
+
+    let query = queryParts.join(" ");
+    if (query.length > 390) query = query.slice(0, 390);
 
     const tavily = await fetch("https://api.tavily.com/search", {
       method: "POST",
