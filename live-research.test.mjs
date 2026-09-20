@@ -49,6 +49,36 @@ const cases = [
     }
   },
   {
+    name: "unknown opportunity ignores generic unrelated sources",
+    expected: "NOT ENOUGH RELIABLE EVIDENCE",
+    input: {
+      name: "OneForma",
+      claim: "AI and data-work projects",
+      answer: "Generic freelancing and make-money-online pages were found.",
+      profile: { devices: ["Android phone"], budgetLabel: "₦0", experience: "Complete beginner", time: "1–3 hours/day", goals: ["Steady Income"] },
+      sources: [
+        source("Best freelancing platforms in Nigeria", "https://example.com/freelancing-nigeria", "Freelancing platforms can offer work to Nigerian users and may pay workers."),
+        source("Make money online in Nigeria", "https://example.com/make-money", "Many online opportunities exist in Nigeria, but availability varies."),
+        source("How to earn online", "https://example.com/earn-online", "Users can earn money online from various websites.")
+      ]
+    }
+  },
+  {
+    name: "OneForma identity keeps relevant evidence and rejects generic evidence",
+    expected: "MAYBE",
+    input: {
+      name: "OneForma",
+      claim: "AI and data-work projects",
+      answer: "OneForma project information was found.",
+      profile: { devices: ["Android phone"], budgetLabel: "₦0", experience: "Complete beginner", time: "1–3 hours/day", goals: ["Steady Income"] },
+      sources: [
+        source("OneForma official website", "https://www.oneforma.com/", "OneForma is an established legitimate platform. Official OneForma website and support information are available."),
+        source("OneForma projects", "https://example.com/oneforma-projects", "OneForma projects are available and requirements vary by project."),
+        source("Best freelancing platforms in Nigeria", "https://example.com/freelancing-nigeria", "Freelancing platforms can offer work to Nigerian users and may pay workers.")
+      ]
+    }
+  },
+  {
     name: "thin evidence",
     expected: "NOT ENOUGH RELIABLE EVIDENCE",
     input: {
