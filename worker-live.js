@@ -114,73 +114,98 @@ async function handleResearch(request, env) {
 }
 
 function assessLiveEvidence({ name, claim, answer, sources, profile }) {
-  const corpus = [name, claim, answer, ...sources.map(x => `${x.title} ${x.content}`)]
-    .join(" ")
-    .toLowerCase();
-
-  const sourceCount = sources.length;
-
-  const officialHits = sources.filter(x => {
+  const normalizedSources = sources.map(source => {
+    const title = String(source.title || "");
+    const content = String(source.content || "");
+    const text = `${title} ${content}`.toLowerCase();
+    let host = "";
     try {
-      const host = new URL(x.url).hostname.toLowerCase().replace(/^www\./, "");
-      return /(^|\.)gov(\.|$)/i.test(host) ||
-        /official|support|help|docs|terms|privacy|company|about|careers/i.test(x.title || "");
-    } catch {
-      return false;
-    }
-  }).length;
+      host = new URL(source.url).hostname.toLowerCase().replace(/^www\\./, "");
+    } catch {}
+    return { ...source, title, content, text, host };
+  });
+
+  const sourceCount = normalizedSources.length;
+  const allText = [name, claim, answer, ...normalizedSources.map(x => x.text)].join(" ").toLowerCase();
+
+  const nameTokens = String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter(token => token.length >= 4 && !["online", "work", "platform", "project", "opportunity"].includes(token));
+
+  const isLikelyOfficial = source => {
+    if (!source.host) return false;
+    if (/(^|\\.)gov(\\.|$)/.test(source.host)) return true;
+    if (!nameTokens.length) return false;
+    const compactHost = source.host.replace(/[^a-z0-9]/g, "");
+    return nameTokens.some(token => compactHost.includes(token));
+  };
 
   const strongNegativePatterns = [
-    /scam|fraud|fake|impersonat|phishing|malware|ponzi|pyramid scheme/,
-    /nigeria[^.]{0,140}(not supported|unsupported|excluded|unavailable|blocked|prohibited)/,
-    /(requires|must).{0,100}(pay|deposit|invest).{0,100}(before|to start|to withdraw)/,
-    /withdrawal[^.]{0,100}(impossible|not possible|blocked|problem|complaint)/,
-    /many complaints|numerous complaints|regulatory warning|government warning/
+    /\\bscam(?:med|ming)?\\b|\\bfraud(?:ulent)?\\b|\\bfake platform\\b|\\bimpersonat(?:ion|ing|ed)\\b|\\bphishing\\b|\\bmalware\\b|\\bponzi\\b|\\bpyramid scheme\\b/,
+    /nigeria[^.]{0,180}(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)/,
+    /(?:requires|must|need to)\\s+(?:pay|deposit|invest|send money)[^.]{0,120}(?:before|to start|to withdraw|for access)/,
+    /withdraw(?:al|als)[^.]{0,120}(?:impossible|not possible|blocked|unable|cannot|can't|complaint)/,
+    /(?:regulatory|government) warning|official warning/
   ];
 
   const positivePatterns = {
-    legitimacy: [/legitimate|legit|established|reputable|well[- ]known|operating since|founded in/],
-    nigeriaAccess: [
-      /nigeria[^.]{0,160}(supported|available|eligible|accepts|accepted|open to|can participate)/,
-      /nigerian users|users in nigeria|available in nigeria|nigeria users/
-    ],
-    payments: [
-      /payout|withdraw|payment[^.]{0,140}(supported|available|paid|method|option)/,
-      /paid[^.]{0,100}(users|workers|contributors|participants)/
-    ],
-    realOperation: [
-      /official (site|website|support|documentation)/,
-      /terms|privacy policy|help center|support center|careers|pricing/
-    ]
+    legitimacy: /(?:legitimate|legit|established|reputable|operating since|founded in|registered company|real company)/,
+    nigeriaAccess: /(?:nigeria[^.]{0,180}(?:supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria|available in nigeria)/,
+    payments: /(?:payout|withdraw|payment)[^.]{0,160}(?:supported|available|paid|method|option|bank|paypal|payoneer|paystack|flutterwave)|paid[^.]{0,120}(?:users|workers|contributors|participants)/,
+    realOperation: /(?:official (?:site|website|support|documentation)|terms of service|privacy policy|help center|support center|careers|pricing|application process|how it works)/
   };
 
   const cautionPatterns = [
-    /project[- ]dependent|availability[^.]{0,100}(varies|limited|depends)/,
+    /project[- ]dependent|availability[^.]{0,120}(?:varies|limited|depends)/,
     /waitlist|qualification|application|invite[- ]only/,
     /identity verification|kyc|id verification|proof of identity/,
     /competition|competitive|limited slots/,
-    /earnings[^.]{0,120}(vary|varies|not guaranteed|depends)/,
+    /earnings[^.]{0,140}(?:vary|varies|not guaranteed|depends)/,
     /fee|fees|commission|minimum payout|threshold/
   ];
 
-  const negativeHits = strongNegativePatterns.filter(r => r.test(corpus)).length;
-  const positiveDimensions = Object.entries(positivePatterns)
-    .filter(([, patterns]) => patterns.some(r => r.test(corpus)))
-    .map(([key]) => key);
+  const sourceSignals = normalizedSources.map(source => {
+    const negatives = strongNegativePatterns.filter(pattern => pattern.test(source.text)).length;
+    const dimensions = Object.entries(positivePatterns)
+      .filter(([, pattern]) => pattern.test(source.text))
+      .map(([key]) => key);
+    const cautions = cautionPatterns.filter(pattern => pattern.test(source.text)).length;
+    return {
+      source,
+      negatives,
+      dimensions,
+      cautions,
+      official: isLikelyOfficial(source)
+    };
+  });
+
+  const negativeSources = sourceSignals.filter(x => x.negatives > 0);
+  const officialNegativeSources = negativeSources.filter(x => x.official);
+  const positiveDimensions = [...new Set(sourceSignals.flatMap(x => x.dimensions))];
   const positiveHits = positiveDimensions.length;
-  const cautionHits = cautionPatterns.filter(r => r.test(corpus)).length;
+  const cautionHits = sourceSignals.reduce((sum, x) => sum + x.cautions, 0);
+  const officialSources = sourceSignals.filter(x => x.official).length;
 
   const blockers = [];
   const cautions = [];
 
-  if (negativeHits) {
-    if (/nigeria[^.]{0,140}(not supported|unsupported|excluded|unavailable|blocked|prohibited)/.test(corpus)) {
+  const nigeriaRestriction = /nigeria[^.]{0,180}(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)/;
+  const upfrontPayment = /(?:requires|must|need to)\\s+(?:pay|deposit|invest|send money)[^.]{0,120}(?:before|to start|to withdraw|for access)/;
+  const scamWarning = /\\bscam(?:med|ming)?\\b|\\bfraud(?:ulent)?\\b|\\bfake platform\\b|\\bimpersonat(?:ion|ing|ed)\\b|\\bphishing\\b|\\bmalware\\b|\\bponzi\\b|\\bpyramid scheme\\b/;
+
+  if (officialNegativeSources.length || negativeSources.length >= 2) {
+    if (officialNegativeSources.some(x => nigeriaRestriction.test(x.source.text)) ||
+        negativeSources.filter(x => nigeriaRestriction.test(x.source.text)).length >= 2) {
       blockers.push("Current evidence indicates Nigeria access is restricted or unavailable.");
     }
-    if (/(requires|must).{0,100}(pay|deposit|invest).{0,100}(before|to start|to withdraw)/.test(corpus)) {
+    if (officialNegativeSources.some(x => upfrontPayment.test(x.source.text)) ||
+        negativeSources.filter(x => upfrontPayment.test(x.source.text)).length >= 2) {
       blockers.push("Current evidence indicates an upfront payment, deposit or investment requirement.");
     }
-    if (/scam|fraud|fake|impersonat|phishing|ponzi|pyramid scheme/.test(corpus)) {
+    if (officialNegativeSources.some(x => scamWarning.test(x.source.text)) ||
+        negativeSources.filter(x => scamWarning.test(x.source.text)).length >= 2) {
       blockers.push("Current sources contain serious scam, fraud or impersonation warnings.");
     }
   }
@@ -189,23 +214,24 @@ function assessLiveEvidence({ name, claim, answer, sources, profile }) {
     cautions.push("Some important conditions such as qualification, KYC, fees, competition or project availability may apply.");
   }
 
-  // TRY requires strong, multi-dimensional positive evidence rather than one enthusiastic source.
+  // TRY needs several independent positive dimensions, enough source coverage,
+  // and either a likely official source or direct Nigeria-access evidence.
   const strongPositiveCase =
     sourceCount >= 3 &&
     positiveHits >= 3 &&
-    negativeHits === 0 &&
-    (officialHits >= 1 || positiveDimensions.includes("nigeriaAccess"));
+    negativeSources.length === 0 &&
+    (officialSources >= 1 || positiveDimensions.includes("nigeriaAccess"));
 
   let verdict = "NOT ENOUGH RELIABLE EVIDENCE";
   let reason = "The available sources do not provide enough consistent evidence for a responsible recommendation.";
 
-  if (negativeHits >= 2 || blockers.length >= 2) {
+  if (blockers.length || negativeSources.length >= 2) {
     verdict = "SKIP";
     reason = "The current evidence contains serious problems or restrictions that make this route unsuitable to pursue right now.";
   } else if (strongPositiveCase) {
     verdict = "TRY";
     reason = "Current evidence shows a real operation with multiple positive signals, including relevant access or support for Nigerian users.";
-  } else if (sourceCount >= 2 && positiveHits >= 1 && negativeHits === 0) {
+  } else if (sourceCount >= 2 && positiveHits >= 1 && negativeSources.length === 0) {
     verdict = "MAYBE";
     reason = "There is evidence that the opportunity may be real or accessible, but important conditions or uncertainties remain.";
   }
@@ -218,10 +244,8 @@ function assessLiveEvidence({ name, claim, answer, sources, profile }) {
   const confidence = verdict === "NOT ENOUGH RELIABLE EVIDENCE"
     ? "Low"
     : verdict === "SKIP"
-      ? (negativeHits >= 2 ? "High for the flagged risks" : "Medium")
-      : verdict === "TRY"
-        ? "Medium"
-        : "Medium";
+      ? (negativeSources.length >= 2 || officialNegativeSources.length ? "High for the flagged risks" : "Medium")
+      : "Medium";
 
   const changes = verdict === "TRY"
     ? "Confirm the exact current requirements, payment terms and availability before starting."
