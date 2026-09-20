@@ -100,6 +100,7 @@ async function handleResearch(request, env) {
       ok: true,
       answer: data.answer || "Current sources were found, but Tavily did not return a research summary.",
       sources,
+      researchBreakdown: buildResearchBreakdown({ name, claim, sources, profile }),
       ...assessment
     });
   } catch (error) {
@@ -113,7 +114,7 @@ async function handleResearch(request, env) {
   }
 }
 
-function assessLiveEvidence({ name, claim, answer, sources, profile }) {
+export function assessLiveEvidence({ name, claim, answer, sources, profile }) {
   const normalizedSources = sources.map(source => {
     const title = String(source.title || "");
     const content = String(source.content || "");
@@ -267,6 +268,51 @@ function assessLiveEvidence({ name, claim, answer, sources, profile }) {
     changes
   };
 }
+function buildResearchBreakdown({ name, claim, sources, profile }) {
+  const text = sources.map(s => String(s.content || "")).join(" ").toLowerCase();
+  const has = pattern => pattern.test(text);
+  const fit = label => profile && label ? label : "";
+
+  return {
+    legitimacy: {
+      status: has(/legitimate|established|reputable|registered company|official site|terms of service|privacy policy/) ? "Evidence found" : "Not clearly established",
+      evidence: "Current sources were checked for legitimacy signals, official documentation and serious warnings."
+    },
+    nigeriaAccess: {
+      status: has(/nigeria[^.]{0,180}(supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/) ? "Evidence found" : "Needs confirmation",
+      evidence: "Sources were checked specifically for Nigeria eligibility and restrictions."
+    },
+    requirements: {
+      status: has(/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone/) ? "Conditions found" : "Not clearly stated",
+      evidence: "Sources were checked for device, KYC, ID, skill and qualification requirements."
+    },
+    gettingPaid: {
+      status: has(/payout|withdraw|payment|paid|bank|paypal|payoneer|paystack|flutterwave/) ? "Payment evidence found" : "Needs confirmation",
+      evidence: "Sources were checked for payment methods, withdrawal conditions and payout information."
+    },
+    earnings: {
+      status: has(/earnings|income|pay|payout|rate|hourly|per task|per project/) ? "Earnings information found" : "Not clearly stated",
+      evidence: "Sources were checked for earning information without treating marketing claims as guaranteed income."
+    },
+    availability: {
+      status: has(/project-dependent|availability|limited|waitlist|qualification|invite-only|current projects|current tasks/) ? "Variable / conditional" : "Needs confirmation",
+      evidence: "Sources were checked for current project or task availability."
+    },
+    realCost: {
+      status: has(/fee|fees|commission|minimum payout|threshold|deposit|invest|data|subscription/) ? "Cost conditions found" : "No clear upfront cost found",
+      evidence: "Sources were checked for money, fees, payout thresholds and other practical costs."
+    },
+    yourFit: {
+      status: "Profile considered",
+      evidence: [fit(profile?.devices?.join(", ")), fit(profile?.budgetLabel), fit(profile?.experience), fit(profile?.time), fit(profile?.goals?.join(", "))].filter(Boolean).join(" • ") || "Your submitted profile is considered by the decision layer."
+    },
+    biggestCatch: {
+      status: "See verdict conditions",
+      evidence: "The decision layer highlights blockers, cautions and unresolved evidence rather than hiding uncertainty."
+    }
+  };
+}
+
 function json(value, status = 200) {
   return new Response(JSON.stringify(value), {
     status,
