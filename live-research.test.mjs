@@ -51,6 +51,7 @@ const cases = [
   {
     name: "unknown opportunity ignores generic unrelated sources",
     expected: "NOT ENOUGH RELIABLE EVIDENCE",
+    expectedMatched: 0,
     input: {
       name: "OneForma",
       claim: "AI and data-work projects",
@@ -66,6 +67,7 @@ const cases = [
   {
     name: "OneForma identity keeps relevant evidence and rejects generic evidence",
     expected: "MAYBE",
+    expectedMatched: 2,
     input: {
       name: "OneForma",
       claim: "AI and data-work projects",
@@ -97,5 +99,8 @@ for (const c of cases) {
   test(c.name, () => {
     const result = assessLiveEvidence(c.input);
     assert.equal(result.verdict, c.expected, JSON.stringify(result, null, 2));
+    if (c.expectedMatched !== undefined) {
+      assert.equal(result.matchedSourceCount, c.expectedMatched, JSON.stringify(result, null, 2));
+    }
   });
 }
