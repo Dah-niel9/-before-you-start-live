@@ -93,7 +93,8 @@ async function handleResearch(request, env) {
       claim,
       answer: data.answer || "",
       sources,
-      profile
+      profile,
+      url
     });
 
     return json({
