@@ -38,7 +38,7 @@ async function handleResearch(request, env) {
     ].filter(Boolean).join(" ");
 
     const queryParts = [
-      `Investigate "${name}" for a person in Nigeria.`,
+      `Investigate only the specific opportunity "${name}" for a person in Nigeria. Do not substitute generic freelancing, make-money-online, or unrelated platform information.`,
       claim ? `Claim: "${claim}".` : "",
       url ? `Link: ${url}` : "",
       profileLine,
@@ -97,9 +97,15 @@ async function handleResearch(request, env) {
       url
     });
 
+    const normalizedOpportunityName = name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const normalizedAnswer = String(data.answer || "").toLowerCase();
+    const answerIsOpportunitySpecific = normalizedOpportunityName && normalizedAnswer.includes(normalizedOpportunityName);
+
     return json({
       ok: true,
-      answer: data.answer || "Current sources were found, but Tavily did not return a research summary.",
+      answer: answerIsOpportunitySpecific
+        ? data.answer
+        : "Current sources were found, but Tavily did not return a verified opportunity-specific research summary.",
       sources,
       researchBreakdown: buildResearchBreakdown({ name, claim, sources: assessment.sources || [], profile }),
       ...assessment
