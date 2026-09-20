@@ -369,8 +369,21 @@ function showLiveResearchResult(name,data,u){
     const snippet=cleanResearchText(x.content||'Current source checked.',260);
     return '<div class="research-source"><div class="research-source-top"><span class="research-source-number">'+(i+1)+'</span><div><b>'+escapeHtml(title)+'</b><div class="research-domain">'+escapeHtml(sourceDomain(x.url))+'</div></div></div><p class="muted">'+escapeHtml(snippet)+'</p><a class="research-link" href="'+escapeHtml(x.url)+'" target="_blank" rel="noopener">Open source →</a></div>';
   }).join('');
-  $('resultCard').innerHTML='<span class="pill">Live Research</span><h2>'+escapeHtml(name)+'</h2><div class="verdict">🟡 MAYBE — REVIEW EVIDENCE</div><div class="notice research-summary"><b>What current research found</b><p class="muted">'+escapeHtml(answer)+'</p></div><div class="card research-sources" style="margin-top:16px"><h3>Sources checked</h3><p class="small">Current web sources used for this check.</p>'+(sourceHtml||'<p class="muted">No source links were returned.</p>')+'</div><div class="notice"><b>Important</b><p class="muted">Live research helps us investigate an opportunity, but it does not guarantee earnings or safety. Verify important claims directly before paying, submitting sensitive documents or investing serious time.</p></div>';
-  $('nextText').textContent='Review the evidence above. If the important facts are still unclear, do not commit serious time or money.';
+  const verdict=data.verdict||'NOT ENOUGH RELIABLE EVIDENCE';
+  const icon=verdict==='TRY'?'🟢':verdict==='MAYBE'?'🟡':verdict==='SKIP'?'🔴':'⚪';
+  const verdictLabel=verdict==='TRY'?'TRY':verdict==='MAYBE'?'MAYBE — REVIEW EVIDENCE':verdict==='SKIP'?'SKIP':'NOT ENOUGH RELIABLE EVIDENCE';
+  const reason=cleanResearchText(data.reason||'The available evidence is not strong enough for a responsible recommendation.',500);
+  const blockers=Array.isArray(data.blockers)?data.blockers:[];
+  const cautions=Array.isArray(data.cautions)?data.cautions:[];
+  const unknowns=Array.isArray(data.unknowns)?data.unknowns:[];
+  const changes=cleanResearchText(data.changes||'Confirm the important requirements, payment terms and current availability before committing serious time or money.',400);
+  const evidenceHtml=(blockers.length?'<h3>❌ Does not fit / blockers</h3><ul>'+blockers.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+
+    (cautions.length?'<h3>⚠️ Conditions to check</h3><ul>'+cautions.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+
+    (unknowns.length?'<h3>⚠️ Uncertain</h3><ul>'+unknowns.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'');
+  $('resultCard').innerHTML='<span class="pill">Live Research</span><h2>'+escapeHtml(name)+'</h2><div class="verdict">'+icon+' '+escapeHtml(verdictLabel)+'</div><div class="notice research-summary"><b>What current research found</b><p class="muted">'+escapeHtml(answer)+'</p></div>'+(
+    evidenceHtml?'<div class="notice"><b>Evidence signals</b>'+evidenceHtml+'</div>':''
+  )+'<div class="notice"><b>Why this verdict?</b><p class="muted">'+escapeHtml(reason)+'</p></div><div class="card research-sources" style="margin-top:16px"><h3>Sources checked</h3><p class="small">Current web sources used for this check.</p>'+(sourceHtml||'<p class="muted">No source links were returned.</p>')+'</div><div class="notice"><b>What would change this verdict?</b><p class="muted">'+escapeHtml(changes)+'</p></div><div class="notice"><b>Important</b><p class="muted">Live research helps us investigate an opportunity, but it does not guarantee earnings or safety. Verify important claims directly before paying, submitting sensitive documents or investing serious time.</p></div>';
+  $('nextText').textContent=verdict==='TRY'?'Start carefully. Confirm the exact current requirements and payment terms before investing serious time.':verdict==='MAYBE'?'Resolve the highlighted conditions first. Do not commit serious time or money until the uncertain points are clear.':verdict==='SKIP'?'Do not spend more time or money on this route right now.':'We need better evidence before a responsible recommendation is possible. Do not pay or submit sensitive documents yet.';
   go('result')
 }
 function resetAll(){['oppName','oppUrl','oppClaim','oppFound'].forEach(id=>$(id).value='');document.querySelectorAll('input[type=checkbox],input[type=radio]').forEach(x=>x.checked=false);$('budget').value='';$('experience').value='';$('time').value='';go('home')}
