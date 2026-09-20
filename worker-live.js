@@ -115,6 +115,21 @@ async function handleResearch(request, env) {
 }
 
 export function assessLiveEvidence({ name, claim, answer, sources, profile }) {
+  const nameTokens = String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter(token => token.length >= 4 && !["online", "work", "platform", "project", "opportunity"].includes(token));
+
+  const normalizedName = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const suppliedHost = (() => {
+    try {
+      return url ? new URL(url).hostname.toLowerCase().replace(/^www\\./, "") : "";
+    } catch {
+      return "";
+    }
+  })();
+
   const normalizedSources = sources.map(source => {
     const title = String(source.title || "");
     const content = String(source.content || "");
@@ -126,14 +141,19 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile }) {
     return { ...source, title, content, text, host };
   });
 
-  const sourceCount = normalizedSources.length;
-  const allText = [name, claim, answer, ...normalizedSources.map(x => x.text)].join(" ").toLowerCase();
+  // Only sources tied to the exact requested opportunity may influence
+  // the verdict. Generic "make money online" pages are not evidence.
+  const matchesOpportunity = source => {
+    if (!source.text) return false;
+    if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) return true;
+    if (normalizedName && source.text.includes(normalizedName)) return true;
+    if (nameTokens.length >= 2 && nameTokens.every(token => source.text.includes(token))) return true;
+    if (nameTokens.length === 1 && source.host.includes(nameTokens[0])) return true;
+    return false;
+  };
 
-  const nameTokens = String(name || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .split(" ")
-    .filter(token => token.length >= 4 && !["online", "work", "platform", "project", "opportunity"].includes(token));
+  const relevantSources = normalizedSources.filter(matchesOpportunity);
+  const sourceCount = relevantSources.length;
 
   const isLikelyOfficial = source => {
     if (!source.host) return false;
