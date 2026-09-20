@@ -140,7 +140,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   const normalizedSources = sources.map(source => {
     const title = String(source.title || "");
     const content = String(source.content || "");
-    const text = `${title} ${content}`.toLowerCase();
+    const text = `${title} ${source.url || ""} ${content}`.toLowerCase();
     let host = "";
     try {
       host = new URL(source.url).hostname.toLowerCase().replace(/^www\\./, "");
