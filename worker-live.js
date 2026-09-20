@@ -100,7 +100,7 @@ async function handleResearch(request, env) {
       ok: true,
       answer: data.answer || "Current sources were found, but Tavily did not return a research summary.",
       sources,
-      researchBreakdown: buildResearchBreakdown({ name, claim, sources, profile }),
+      researchBreakdown: buildResearchBreakdown({ name, claim, sources: assessment.sources || [], profile }),
       ...assessment
     });
   } catch (error) {
@@ -114,7 +114,7 @@ async function handleResearch(request, env) {
   }
 }
 
-export function assessLiveEvidence({ name, claim, answer, sources, profile }) {
+export function assessLiveEvidence({ name, claim, answer, sources, profile, url = "" }) {
   const nameTokens = String(name || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
@@ -187,7 +187,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile }) {
     /fee|fees|commission|minimum payout|threshold/
   ];
 
-  const sourceSignals = normalizedSources.map(source => {
+  const sourceSignals = relevantSources.map(source => {
     const negatives = strongNegativePatterns.filter(pattern => pattern.test(source.text)).length;
     const dimensions = Object.entries(positivePatterns)
       .filter(([, pattern]) => pattern.test(source.text))
@@ -277,6 +277,8 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile }) {
         : "More reliable, current evidence from official or independent sources is needed.";
 
   return {
+    sources: relevantSources.map(({ text, host, ...source }) => source),
+    matchedSourceCount: sourceCount,
     verdict,
     confidence,
     reason,
