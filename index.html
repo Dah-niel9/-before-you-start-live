@@ -361,6 +361,11 @@ function cleanResearchText(value,max=700){
 function sourceDomain(url){
   try{return new URL(url).hostname.replace(/^www\./,'')}catch{return 'Source'}
 }
+function renderResearchBreakdown(breakdown){
+  if(!breakdown||typeof breakdown!=='object')return '';
+  const labels={legitimacy:'Legitimacy',nigeriaAccess:'Nigeria access',requirements:'Requirements',gettingPaid:'Getting paid',earnings:'Earnings',availability:'Availability',realCost:'Real cost',yourFit:'Your fit',biggestCatch:'Biggest catch'};
+  return '<div class="card" style="margin-top:16px"><h3>Before You Start breakdown</h3><p class="small">The research is organized around the same questions we use to decide whether an opportunity is worth pursuing.</p>'+Object.entries(labels).map(([key,label])=>{const x=breakdown[key]||{};return '<div class="row"><span><b>'+escapeHtml(label)+'</b><br><span class="source">'+escapeHtml(x.status||'Not enough evidence')+'</span></span><b>'+escapeHtml(x.evidence||'No clear evidence found yet.')+'</b></div>'}).join('')+'</div>';
+}
 function showLiveResearchResult(name,data,u){
   const answer=cleanResearchText(data.answer||'Current sources were found, but no concise summary was returned.',850);
   const sources=(data.sources||[]).filter(x=>x.url).slice(0,5);
@@ -380,7 +385,7 @@ function showLiveResearchResult(name,data,u){
   const evidenceHtml=(blockers.length?'<h3>❌ Does not fit / blockers</h3><ul>'+blockers.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+
     (cautions.length?'<h3>⚠️ Conditions to check</h3><ul>'+cautions.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+
     (unknowns.length?'<h3>⚠️ Uncertain</h3><ul>'+unknowns.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'');
-  $('resultCard').innerHTML='<span class="pill">Live Research</span><h2>'+escapeHtml(name)+'</h2><div class="verdict">'+icon+' '+escapeHtml(verdictLabel)+'</div><div class="notice research-summary"><b>What current research found</b><p class="muted">'+escapeHtml(answer)+'</p></div>'+(
+  $('resultCard').innerHTML='<span class="pill">Live Research</span><h2>'+escapeHtml(name)+'</h2><div class="verdict">'+icon+' '+escapeHtml(verdictLabel)+'</div><div class="notice research-summary"><b>What current research found</b><p class="muted">'+escapeHtml(answer)+'</p></div>'+renderResearchBreakdown(data.researchBreakdown)+(
     evidenceHtml?'<div class="notice"><b>Evidence signals</b>'+evidenceHtml+'</div>':''
   )+'<div class="notice"><b>Why this verdict?</b><p class="muted">'+escapeHtml(reason)+'</p></div><div class="card research-sources" style="margin-top:16px"><h3>Sources checked</h3><p class="small">Current web sources used for this check.</p>'+(sourceHtml||'<p class="muted">No source links were returned.</p>')+'</div><div class="notice"><b>What would change this verdict?</b><p class="muted">'+escapeHtml(changes)+'</p></div><div class="notice"><b>Important</b><p class="muted">Live research helps us investigate an opportunity, but it does not guarantee earnings or safety. Verify important claims directly before paying, submitting sensitive documents or investing serious time.</p></div>';
   $('nextText').textContent=verdict==='TRY'?'Start carefully. Confirm the exact current requirements and payment terms before investing serious time.':verdict==='MAYBE'?'Resolve the highlighted conditions first. Do not commit serious time or money until the uncertain points are clear.':verdict==='SKIP'?'Do not spend more time or money on this route right now.':'We need better evidence before a responsible recommendation is possible. Do not pay or submit sensitive documents yet.';
