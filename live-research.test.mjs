@@ -97,7 +97,7 @@ const cases = [
   },
   {
     name: "opportunity-linked claims are allowed as evidence",
-    expected: "MAYBE",
+    expected: "TRY",
     input: {
       name: "OneForma",
       claim: "AI and data-work projects",
