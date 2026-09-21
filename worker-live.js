@@ -194,16 +194,35 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     /fee|fees|commission|minimum payout|threshold/
   ];
 
+  const supportsPattern = (source, pattern) => {
+    const compact = source.text.replace(/\\s+/g, " ").trim();
+    const opportunityAnchors = [
+      normalizedName,
+      ...nameTokens
+    ].filter(Boolean);
+    if (!opportunityAnchors.length) return false;
+    if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) {
+      return pattern.test(compact);
+    }
+    return opportunityAnchors.some(anchor => {
+      const index = compact.indexOf(anchor);
+      if (index < 0) return false;
+      const windowStart = Math.max(0, index - 220);
+      const windowEnd = Math.min(compact.length, index + anchor.length + 220);
+      return pattern.test(compact.slice(windowStart, windowEnd));
+    });
+  };
+
   const sourceSignals = relevantSources.map(source => {
-    const negatives = strongNegativePatterns.filter(pattern => pattern.test(source.text)).length;
-    const dimensions = Object.entries(positivePatterns)
-      .filter(([, pattern]) => pattern.test(source.text))
+    const negativePatterns = strongNegativePatterns.filter(pattern => supportsPattern(source, pattern));
+    const supportedDimensions = Object.entries(positivePatterns)
+      .filter(([, pattern]) => supportsPattern(source, pattern))
       .map(([key]) => key);
-    const cautions = cautionPatterns.filter(pattern => pattern.test(source.text)).length;
+    const cautions = cautionPatterns.filter(pattern => supportsPattern(source, pattern)).length;
     return {
       source,
-      negatives,
-      dimensions,
+      negatives: negativePatterns.length,
+      dimensions: supportedDimensions,
       cautions,
       official: isLikelyOfficial(source)
     };
@@ -224,16 +243,16 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   const scamWarning = /\\bscam(?:med|ming)?\\b|\\bfraud(?:ulent)?\\b|\\bfake platform\\b|\\bimpersonat(?:ion|ing|ed)\\b|\\bphishing\\b|\\bmalware\\b|\\bponzi\\b|\\bpyramid scheme\\b/;
 
   if (officialNegativeSources.length || negativeSources.length >= 2) {
-    if (officialNegativeSources.some(x => nigeriaRestriction.test(x.source.text)) ||
-        negativeSources.filter(x => nigeriaRestriction.test(x.source.text)).length >= 2) {
+    if (officialNegativeSources.some(x => supportsPattern(x.source, nigeriaRestriction)) ||
+        negativeSources.filter(x => supportsPattern(x.source, nigeriaRestriction)).length >= 2) {
       blockers.push("Current evidence indicates Nigeria access is restricted or unavailable.");
     }
-    if (officialNegativeSources.some(x => upfrontPayment.test(x.source.text)) ||
-        negativeSources.filter(x => upfrontPayment.test(x.source.text)).length >= 2) {
+    if (officialNegativeSources.some(x => supportsPattern(x.source, upfrontPayment)) ||
+        negativeSources.filter(x => supportsPattern(x.source, upfrontPayment)).length >= 2) {
       blockers.push("Current evidence indicates an upfront payment, deposit or investment requirement.");
     }
-    if (officialNegativeSources.some(x => scamWarning.test(x.source.text)) ||
-        negativeSources.filter(x => scamWarning.test(x.source.text)).length >= 2) {
+    if (officialNegativeSources.some(x => supportsPattern(x.source, scamWarning)) ||
+        negativeSources.filter(x => supportsPattern(x.source, scamWarning)).length >= 2) {
       blockers.push("Current sources contain serious scam, fraud or impersonation warnings.");
     }
   }
