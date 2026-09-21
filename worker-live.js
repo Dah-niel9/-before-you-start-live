@@ -204,13 +204,10 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) {
       return pattern.test(compact);
     }
-    return opportunityAnchors.some(anchor => {
-      const index = compact.indexOf(anchor);
-      if (index < 0) return false;
-      const windowStart = Math.max(0, index - 220);
-      const windowEnd = Math.min(compact.length, index + anchor.length + 220);
-      return pattern.test(compact.slice(windowStart, windowEnd));
-    });
+    const sentences = compact.split(/(?<=[.!?])\\s+/);
+    return opportunityAnchors.some(anchor =>
+      sentences.some(sentence => sentence.includes(anchor) && pattern.test(sentence))
+    );
   };
 
   const sourceSignals = relevantSources.map(source => {
