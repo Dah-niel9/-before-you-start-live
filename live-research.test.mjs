@@ -15,8 +15,8 @@ const cases = [
       profile: { devices: ["Android phone"], budgetLabel: "₦0", experience: "Complete beginner", time: "1–3 hours/day", goals: ["Extra Cash"] },
       sources: [
         source("Acme Work official website", "https://acmework.com", "Acme Work is an established legitimate company. Official website and terms of service are available."),
-        source("Nigeria eligibility", "https://www.gov.ng/acmework", "Nigeria supported. Nigerian users are eligible to participate."),
-        source("Independent payment review", "https://example.com/acme-work-review", "Payouts are available and workers report a payment option."),
+        source("Acme Work Nigeria eligibility", "https://www.gov.ng/acmework", "Acme Work is supported in Nigeria. Nigerian users are eligible to participate."),
+        source("Acme Work payment review", "https://example.com/acme-work-review", "Acme Work payouts are available and workers report a payment option."),
       ]
     }
   },
@@ -29,8 +29,8 @@ const cases = [
       answer: "Warnings were found.",
       profile: {},
       sources: [
-        source("Bad Work warning", "https://example.com/warning", "Users report fraud and call this a scam. Nigeria is not supported."),
-        source("Bad Work warning 2", "https://example.org/report", "Independent reports describe a fake platform and phishing concerns. Nigeria is excluded."),
+        source("Bad Work warning", "https://example.com/warning", "Users report Bad Work is fraud and call it a scam. Nigeria is not supported."),
+        source("Bad Work warning 2", "https://example.org/report", "Independent reports about Bad Work describe a fake platform and phishing concerns. Nigeria is excluded."),
       ]
     }
   },
@@ -44,7 +44,7 @@ const cases = [
       profile: {},
       sources: [
         source("Maybe Work overview", "https://maybe-work.com", "Maybe Work is an established legitimate company with an official website."),
-        source("Project overview", "https://example.com/maybe-work", "Projects are available and payments are made to workers."),
+        source("Maybe Work project overview", "https://example.com/maybe-work", "Maybe Work projects are available and payments are made to workers."),
       ]
     }
   },
@@ -89,7 +89,7 @@ const cases = [
       answer: "",
       profile: {},
       sources: [
-        source("Forum mention", "https://example.com/post", "Someone mentioned this opportunity online."),
+        source("Forum mention", "https://example.com/post", "Someone mentioned this opportunity online.")
       ]
     }
   }
