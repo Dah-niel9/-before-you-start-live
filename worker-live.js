@@ -195,18 +195,25 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   ];
 
   const supportsPattern = (source, pattern) => {
-    const compact = source.text.replace(/\\s+/g, " ").trim();
+    const compact = source.text.replace(/\s+/g, " ").trim();
     const opportunityAnchors = [
       normalizedName,
       ...nameTokens
     ].filter(Boolean);
     if (!opportunityAnchors.length) return false;
+
+    const isPositiveEvidenceSentence = sentence => {
+      if (!pattern.test(sentence)) return false;
+      return !/(?:does not establish|doesn't establish|does not prove|doesn't prove|not evidence|not proof|not supported|unsupported|not available|unavailable|not eligible|not accepted|may pay|might pay|could pay|many platforms|other platforms)/i.test(sentence);
+    };
+
     if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) {
-      return pattern.test(compact);
+      return isPositiveEvidenceSentence(compact);
     }
-    const sentences = compact.split(/(?<=[.!?])\\s+/);
+
+    const sentences = compact.split(/(?<=[.!?])\s+/);
     return opportunityAnchors.some(anchor =>
-      sentences.some(sentence => sentence.includes(anchor) && pattern.test(sentence))
+      sentences.some(sentence => sentence.includes(anchor) && isPositiveEvidenceSentence(sentence))
     );
   };
 
