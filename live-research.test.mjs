@@ -81,6 +81,36 @@ const cases = [
     }
   },
   {
+    name: "unsupported generic claims do not become opportunity evidence",
+    expected: "MAYBE",
+    input: {
+      name: "OneForma",
+      claim: "AI and data-work projects",
+      answer: "OneForma information was found.",
+      profile: {},
+      sources: [
+        source("OneForma official website", "https://www.oneforma.com/", "OneForma is an established legitimate platform with an official website."),
+        source("OneForma payment discussion", "https://example.com/oneforma-payment", "OneForma is mentioned here. Freelancing platforms may pay workers, but this page does not establish OneForma payment methods."),
+        source("OneForma Nigeria discussion", "https://example.com/oneforma-nigeria", "OneForma is mentioned here. Many platforms are available in Nigeria, but this page does not establish OneForma eligibility.")
+      ]
+    }
+  },
+  {
+    name: "opportunity-linked claims are allowed as evidence",
+    expected: "MAYBE",
+    input: {
+      name: "OneForma",
+      claim: "AI and data-work projects",
+      answer: "OneForma information was found.",
+      profile: {},
+      sources: [
+        source("OneForma official website", "https://www.oneforma.com/", "OneForma is an established legitimate platform with an official website."),
+        source("OneForma payment information", "https://example.com/oneforma-payment", "OneForma payments are available through supported payment methods for eligible workers."),
+        source("OneForma Nigeria information", "https://example.com/oneforma-nigeria", "OneForma is available to eligible users in Nigeria, subject to current project requirements.")
+      ]
+    }
+  },
+  {
     name: "thin evidence",
     expected: "NOT ENOUGH RELIABLE EVIDENCE",
     input: {
