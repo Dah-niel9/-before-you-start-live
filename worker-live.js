@@ -171,9 +171,9 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   };
 
   const strongNegativePatterns = [
-    /\\bscam(?:med|ming)?\\b|\\bfraud(?:ulent)?\\b|\\bfake platform\\b|\\bimpersonat(?:ion|ing|ed)\\b|\\bphishing\\b|\\bmalware\\b|\\bponzi\\b|\\bpyramid scheme\\b/,
+    /\bscam(?:med|ming)?\b|\bfraud(?:ulent)?\b|\bfake platform\b|\bimpersonat(?:ion|ing|ed)\b|\bphishing\b|\bmalware\b|\bponzi\b|\bpyramid scheme\b/,
     /nigeria[^.]{0,180}(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)/,
-    /(?:requires|must|need to)\\s+(?:pay|deposit|invest|send money)[^.]{0,120}(?:before|to start|to withdraw|for access)/,
+    /(?:requires|must|need to)\s+(?:pay|deposit|invest|send money)[^.]{0,120}(?:before|to start|to withdraw|for access)/,
     /withdraw(?:al|als)[^.]{0,120}(?:impossible|not possible|blocked|unable|cannot|can't|complaint)/,
     /(?:regulatory|government) warning|official warning/
   ];
@@ -249,8 +249,8 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   const cautions = [];
 
   const nigeriaRestriction = /nigeria[^.]{0,180}(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)/;
-  const upfrontPayment = /(?:requires|must|need to)\\s+(?:pay|deposit|invest|send money)[^.]{0,120}(?:before|to start|to withdraw|for access)/;
-  const scamWarning = /\\bscam(?:med|ming)?\\b|\\bfraud(?:ulent)?\\b|\\bfake platform\\b|\\bimpersonat(?:ion|ing|ed)\\b|\\bphishing\\b|\\bmalware\\b|\\bponzi\\b|\\bpyramid scheme\\b/;
+  const upfrontPayment = /(?:requires|must|need to)\s+(?:pay|deposit|invest|send money)[^.]{0,120}(?:before|to start|to withdraw|for access)/;
+  const scamWarning = /\bscam(?:med|ming)?\b|\bfraud(?:ulent)?\b|\bfake platform\b|\bimpersonat(?:ion|ing|ed)\b|\bphishing\b|\bmalware\b|\bponzi\b|\bpyramid scheme\b/;
 
   if (officialNegativeSources.length || negativeSources.length >= 2) {
     if (officialNegativeSources.some(x => supportsPattern(x.source, nigeriaRestriction)) ||
