@@ -196,33 +196,39 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
 
   const supportsPattern = (source, pattern) => {
     const compact = source.text.replace(/\s+/g, " ").trim();
-    const opportunityAnchors = [
-      normalizedName,
-      ...nameTokens
-    ].filter(Boolean);
+    const opportunityAnchors = [normalizedName, ...nameTokens].filter(Boolean);
     if (!opportunityAnchors.length) return false;
-
-    const isPositiveEvidenceSentence = sentence => {
-      if (!pattern.test(sentence)) return false;
-      return !/(?:does not establish|doesn't establish|does not prove|doesn't prove|not evidence|not proof|not supported|unsupported|not available|unavailable|not eligible|not accepted|may pay|might pay|could pay|many platforms|other platforms)/i.test(sentence);
-    };
-
     if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) {
-      return isPositiveEvidenceSentence(compact);
+      return pattern.test(compact);
     }
-
     const sentences = compact.split(/(?<=[.!?])\s+/);
     return opportunityAnchors.some(anchor =>
-      sentences.some(sentence => sentence.includes(anchor) && isPositiveEvidenceSentence(sentence))
+      sentences.some(sentence => sentence.includes(anchor) && pattern.test(sentence))
+    );
+  };
+
+  const supportsPositivePattern = (source, pattern) => {
+    const compact = source.text.replace(/\s+/g, " ").trim();
+    const opportunityAnchors = [normalizedName, ...nameTokens].filter(Boolean);
+    if (!opportunityAnchors.length) return false;
+    const isUsableSentence = sentence =>
+      pattern.test(sentence) &&
+      !/(?:does not establish|doesn't establish|does not prove|doesn't prove|not evidence|not proof|not supported|unsupported|not available|unavailable|not eligible|not accepted|may pay|might pay|could pay|many platforms|other platforms)/i.test(sentence);
+    if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) {
+      return isUsableSentence(compact);
+    }
+    const sentences = compact.split(/(?<=[.!?])\s+/);
+    return opportunityAnchors.some(anchor =>
+      sentences.some(sentence => sentence.includes(anchor) && isUsableSentence(sentence))
     );
   };
 
   const sourceSignals = relevantSources.map(source => {
     const negativePatterns = strongNegativePatterns.filter(pattern => supportsPattern(source, pattern));
     const supportedDimensions = Object.entries(positivePatterns)
-      .filter(([, pattern]) => supportsPattern(source, pattern))
+      .filter(([, pattern]) => supportsPositivePattern(source, pattern))
       .map(([key]) => key);
-    const cautions = cautionPatterns.filter(pattern => supportsPattern(source, pattern)).length;
+    const cautions = cautionPatterns.filter(pattern => supportsPositivePattern(source, pattern)).length;
     return {
       source,
       negatives: negativePatterns.length,
