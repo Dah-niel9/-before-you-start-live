@@ -247,3 +247,46 @@ test("matching profile requirements do not weaken a strong verdict", () => {
   });
   assert.equal(result.verdict, "TRY", JSON.stringify(result, null, 2));
 });
+
+
+test("source presentation curates useful opportunity-specific sources", () => {
+  const result = assessLiveEvidence({
+    name: "OneForma",
+    claim: "AI and data-work projects",
+    answer: "OneForma information was found.",
+    profile: {},
+    sources: [
+      source("OneForma official website", "https://www.oneforma.com/", "OneForma is an established legitimate platform with official information and terms of service."),
+      source("OneForma Help Center payment information", "https://www.oneforma.com/help", "OneForma payment methods and withdrawal information are documented for eligible contributors."),
+      source("OneForma Nigeria eligibility", "https://example.com/oneforma-nigeria", "OneForma is available to eligible users in Nigeria, subject to project requirements."),
+      source("Best ways to make money online in Nigeria", "https://example.com/make-money-nigeria", "Many online platforms can offer income opportunities to Nigerian users."),
+      source("Top freelancing platforms in Nigeria", "https://example.com/freelancing-nigeria", "Freelancing platforms may offer work and payments in Nigeria.")
+    ]
+  });
+  assert.equal(result.matchedSourceCount, 5, JSON.stringify(result, null, 2));
+  assert.equal(result.displayedSourceCount, 3, JSON.stringify(result, null, 2));
+  assert.deepEqual(
+    result.sources.map(s => s.title),
+    [
+      "OneForma Help Center payment information",
+      "OneForma official website",
+      "OneForma Nigeria eligibility"
+    ]
+  );
+});
+
+test("source curation can return fewer than five when only a few sources are useful", () => {
+  const result = assessLiveEvidence({
+    name: "OneForma",
+    claim: "AI and data-work projects",
+    answer: "OneForma information was found.",
+    profile: {},
+    sources: [
+      source("OneForma official website", "https://www.oneforma.com/", "OneForma is an established legitimate platform with official information and terms of service."),
+      source("Generic Nigeria earning guide", "https://example.com/make-money", "Many online opportunities exist in Nigeria.")
+    ]
+  });
+  assert.equal(result.matchedSourceCount, 1, JSON.stringify(result, null, 2));
+  assert.equal(result.displayedSourceCount, 1, JSON.stringify(result, null, 2));
+  assert.equal(result.sources[0].title, "OneForma official website");
+});
