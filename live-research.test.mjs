@@ -134,3 +134,54 @@ for (const c of cases) {
     }
   });
 }
+
+
+// Defect C: verdict integrity. The final verdict must come from
+// opportunity-linked evidence, not from a generic Tavily summary or unrelated sources.
+test("verdict ignores a generic Tavily summary when evidence is strong", () => {
+  const input = {
+    name: "Clean Work",
+    claim: "Remote work opportunities",
+    answer: "This generic summary says the opportunity is risky and not recommended, but it does not discuss Clean Work.",
+    profile: {},
+    sources: [
+      source("Clean Work official", "https://cleanwork.com", "Clean Work is an established legitimate company. Official website and terms of service are available."),
+      source("Clean Work Nigeria", "https://www.gov.ng/cleanwork", "Clean Work is supported in Nigeria. Nigerian users are eligible to participate."),
+      source("Clean Work payments", "https://example.com/clean-work", "Clean Work payouts are available through a supported payment option for workers.")
+    ]
+  };
+  const result = assessLiveEvidence(input);
+  assert.equal(result.verdict, "TRY", JSON.stringify(result, null, 2));
+});
+
+test("relevant conflicting evidence cannot produce TRY", () => {
+  const input = {
+    name: "Conflict Work",
+    claim: "Remote work opportunities",
+    answer: "Conflict Work information was found.",
+    profile: {},
+    sources: [
+      source("Conflict Work official", "https://conflictwork.com", "Conflict Work is an established legitimate company. Official website and terms of service are available."),
+      source("Conflict Work Nigeria", "https://example.com/conflict-nigeria", "Conflict Work is supported in Nigeria and Nigerian users are eligible."),
+      source("Conflict Work warning", "https://example.com/conflict-warning", "Independent reports about Conflict Work describe a fake platform and phishing concerns.")
+    ]
+  };
+  const result = assessLiveEvidence(input);
+  assert.notEqual(result.verdict, "TRY", JSON.stringify(result, null, 2));
+});
+
+test("unrelated negative sources cannot force SKIP", () => {
+  const input = {
+    name: "Good Work",
+    claim: "Remote work opportunities",
+    answer: "Generic scam warnings about other websites were found.",
+    profile: {},
+    sources: [
+      source("Good Work official", "https://goodwork.com", "Good Work is an established legitimate company. Official website and terms of service are available."),
+      source("Good Work Nigeria", "https://example.com/goodwork-nigeria", "Good Work is supported in Nigeria. Nigerian users are eligible to participate."),
+      source("Other platform scam warning", "https://example.com/other-platform", "Another platform is a scam and has phishing complaints. Nigeria is excluded for that other platform.")
+    ]
+  };
+  const result = assessLiveEvidence(input);
+  assert.equal(result.verdict, "TRY", JSON.stringify(result, null, 2));
+});
