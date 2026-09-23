@@ -199,3 +199,51 @@ test("live research uses the existing Before You Start result layout", () => {
   assert.doesNotMatch(html, /Before You Start breakdown/);
   assert.doesNotMatch(html, /Sources checked/);
 });
+
+
+test("profile mismatch can change a strong opportunity to SKIP", () => {
+  const result = assessLiveEvidence({
+    name: "Laptop Work",
+    claim: "Remote work",
+    answer: "Laptop Work information was found.",
+    profile: { devices: ["Android phone"], budgetLabel: "₦0", experience: "Complete beginner", time: "1–3 hours/day", goals: ["Steady Income"], ids: ["NIN / National ID (digital)"], skills: ["None yet"] },
+    sources: [
+      source("Laptop Work official", "https://laptopwork.com", "Laptop Work is an established legitimate company with an official website and terms of service."),
+      source("Laptop Work Nigeria", "https://example.com/laptopwork-nigeria", "Laptop Work is supported in Nigeria. Nigerian users are eligible to participate."),
+      source("Laptop Work requirements", "https://example.com/laptopwork-requirements", "Laptop Work requires a laptop or computer to complete the work. Laptop Work payouts are available through a supported payment option.")
+    ]
+  });
+  assert.equal(result.verdict, "SKIP", JSON.stringify(result, null, 2));
+  assert.match(result.blockers.join(" "), /laptop/i);
+});
+
+test("profile budget mismatch can change the verdict when cost evidence is clear", () => {
+  const result = assessLiveEvidence({
+    name: "Paid Start Work",
+    claim: "Remote work",
+    answer: "Paid Start Work information was found.",
+    profile: { devices: ["Laptop"], budgetLabel: "₦0", experience: "Experienced", time: "3+ hours/day", goals: ["Steady Income"], ids: ["Passport"], skills: ["Writing"] },
+    sources: [
+      source("Paid Start Work official", "https://paidstartwork.com", "Paid Start Work is an established legitimate company with an official website and terms of service."),
+      source("Paid Start Work Nigeria", "https://example.com/paidstartwork-nigeria", "Paid Start Work is supported in Nigeria. Nigerian users are eligible to participate."),
+      source("Paid Start Work cost", "https://example.com/paidstartwork-cost", "Paid Start Work requires ₦20,000 to start. Paid Start Work payouts are available through a supported payment option.")
+    ]
+  });
+  assert.equal(result.verdict, "SKIP", JSON.stringify(result, null, 2));
+  assert.match(result.blockers.join(" "), /₦20,000|budget/i);
+});
+
+test("matching profile requirements do not weaken a strong verdict", () => {
+  const result = assessLiveEvidence({
+    name: "Good Fit Work",
+    claim: "Remote work",
+    answer: "Good Fit Work information was found.",
+    profile: { devices: ["Laptop"], budgetLabel: "₦25,000–₦49,999", experience: "Experienced", time: "3+ hours/day", goals: ["Steady Income"], ids: ["Passport"], skills: ["Writing"] },
+    sources: [
+      source("Good Fit Work official", "https://goodfitwork.com", "Good Fit Work is an established legitimate company with an official website and terms of service."),
+      source("Good Fit Work Nigeria", "https://example.com/goodfitwork-nigeria", "Good Fit Work is supported in Nigeria. Nigerian users are eligible to participate."),
+      source("Good Fit Work requirements", "https://example.com/goodfitwork-requirements", "Good Fit Work requires a laptop or computer and prior experience. Good Fit Work payouts are available through a supported payment option.")
+    ]
+  });
+  assert.equal(result.verdict, "TRY", JSON.stringify(result, null, 2));
+});
