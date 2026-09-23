@@ -334,6 +334,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     reason,
     blockers,
     cautions,
+    profileFit,
     unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE"
       ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."]
       : [],
