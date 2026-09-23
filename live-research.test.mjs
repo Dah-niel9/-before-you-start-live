@@ -145,7 +145,7 @@ test("verdict ignores a generic Tavily summary when evidence is strong", () => {
     answer: "This generic summary says the opportunity is risky and not recommended, but it does not discuss Clean Work.",
     profile: {},
     sources: [
-      source("Clean Work official", "https://cleanwork.com", "Clean Work is an established legitimate company. Official website and terms of service are available."),
+      source("Clean Work official", "https://cleanwork.com", "Clean Work is an established legitimate company with an official website and terms of service."),
       source("Clean Work Nigeria", "https://www.gov.ng/cleanwork", "Clean Work is supported in Nigeria. Nigerian users are eligible to participate."),
       source("Clean Work payments", "https://example.com/clean-work", "Clean Work payouts are available through a supported payment option for workers.")
     ]
@@ -179,6 +179,7 @@ test("unrelated negative sources cannot force SKIP", () => {
     sources: [
       source("Good Work official", "https://goodwork.com", "Good Work is an established legitimate company. Official website and terms of service are available."),
       source("Good Work Nigeria", "https://example.com/goodwork-nigeria", "Good Work is supported in Nigeria. Nigerian users are eligible to participate."),
+      source("Good Work payments", "https://example.com/goodwork-payments", "Good Work payouts are available through a supported payment option for workers."),
       source("Other platform scam warning", "https://example.com/other-platform", "Another platform is a scam and has phishing complaints. Nigeria is excluded for that other platform.")
     ]
   };
