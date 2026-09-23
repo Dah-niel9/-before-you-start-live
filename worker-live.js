@@ -163,6 +163,36 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   const relevantSources = normalizedSources.filter(matchesOpportunity);
   const sourceCount = relevantSources.length;
 
+  // Source presentation is separate from verdict evidence: all relevant sources
+  // may inform the decision, but only the most useful, opportunity-specific
+  // sources should be shown to the user.
+  const sourceQualityScore = source => {
+    const title = source.title.toLowerCase();
+    const text = source.text;
+    let score = 0;
+    if (normalizedName && title.includes(normalizedName)) score += 5;
+    if (isLikelyOfficialHost(source.host, nameTokens)) score += 4;
+    if (/(support|help|docs|documentation|terms|privacy|payment|payout|withdraw|eligib|requirement|pricing|how it works)/i.test(title)) score += 3;
+    if (normalizedName && text.includes(normalizedName)) score += 2;
+    if (String(source.content || "").trim().length >= 120) score += 1;
+    if (/(make money online|ways to earn money|best freelancing|top platforms|earn online in nigeria)/i.test(title) &&
+        normalizedName && !title.includes(normalizedName)) score -= 6;
+    return score;
+  };
+
+  const isLikelyOfficialHost = (host, tokens) => {
+    if (!host) return false;
+    if (/(^|\\.)gov(\\.|$)/.test(host)) return true;
+    const compact = host.replace(/[^a-z0-9]/g, "");
+    return tokens.some(token => compact.includes(token));
+  };
+
+  const curatedSources = [...relevantSources]
+    .map(source => ({ ...source, qualityScore: sourceQualityScore(source) }))
+    .sort((a,b) => b.qualityScore - a.qualityScore)
+    .filter(source => source.qualityScore >= 3)
+    .slice(0, 5);
+
   const isLikelyOfficial = source => {
     if (!source.host) return false;
     if (/(^|\\.)gov(\\.|$)/.test(source.host)) return true;
@@ -327,8 +357,9 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
         : "More reliable, current evidence from official or independent sources is needed.";
 
   return {
-    sources: relevantSources.map(({ text, host, ...source }) => source),
+    sources: curatedSources.map(({ text, host, qualityScore, ...source }) => source),
     matchedSourceCount: sourceCount,
+    displayedSourceCount: curatedSources.length,
     verdict,
     confidence,
     reason,
