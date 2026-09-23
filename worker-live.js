@@ -32,6 +32,7 @@ async function handleResearch(request, env) {
       Array.isArray(profile.devices) ? `Devices: ${profile.devices.join(", ")}.` : "",
       profile.budgetLabel ? `Budget: ${profile.budgetLabel}.` : "",
       Array.isArray(profile.ids) ? `IDs: ${profile.ids.join(", ")}.` : "",
+      Array.isArray(profile.skills) ? `Skills: ${profile.skills.join(", ")}.` : "",
       profile.experience ? `Experience: ${profile.experience}.` : "",
       profile.time ? `Time: ${profile.time}.` : "",
       Array.isArray(profile.goals) ? `Goal: ${profile.goals.join(", ")}.` : ""
@@ -298,6 +299,19 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     reason = "The opportunity shows strong positive signals, but several conditions or uncertainties still need to be confirmed before committing serious time or money.";
   }
 
+  // Personalization: only apply profile fit when the opportunity evidence
+  // states a clear requirement that can be compared with the user's profile.
+  const profileFit = assessProfileFit({ sources: relevantSources, profile });
+  if (profileFit.hardBlockers.length) {
+    verdict = "SKIP";
+    reason = "The opportunity may be real, but current evidence shows a requirement that does not fit your current profile."; 
+    blockers.push(...profileFit.hardBlockers);
+  } else if (profileFit.cautions.length && verdict === "TRY") {
+    verdict = "MAYBE";
+    reason = "The opportunity has positive evidence, but one or more current requirements do not fully match your profile."; 
+    cautions.push(...profileFit.cautions);
+  }
+
   const confidence = verdict === "NOT ENOUGH RELIABLE EVIDENCE"
     ? "Low"
     : verdict === "SKIP"
@@ -326,6 +340,80 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     changes
   };
 }
+function assessProfileFit({ sources, profile }) {
+  const text = sources.map(s => String(s.content || "")).join(" ").toLowerCase();
+  const devices = Array.isArray(profile?.devices) ? profile.devices.map(String).map(x => x.toLowerCase()) : [];
+  const ids = Array.isArray(profile?.ids) ? profile.ids.map(String).map(x => x.toLowerCase()) : [];
+  const skills = Array.isArray(profile?.skills) ? profile.skills.map(String).map(x => x.toLowerCase()) : [];
+  const experience = String(profile?.experience || "").toLowerCase();
+  const budget = String(profile?.budgetLabel || "").toLowerCase();
+  const hardBlockers = [];
+  const cautions = [];
+  const matches = [];
+
+  const hasLaptop = devices.some(x => x.includes("laptop"));
+  const hasPhone = devices.some(x => x.includes("android") || x.includes("iphone") || x.includes("phone"));
+  const hasNoId = ids.some(x => x === "none");
+  const hasNoSkills = skills.some(x => x === "none yet");
+
+  if (/(?:requires|must have|need(?:s)?|only works on|available only on)[^.]{0,100}\b(?:laptop|computer|desktop)\b/i.test(text) && !hasLaptop) {
+    hardBlockers.push("Current evidence says a laptop/computer is required, but your profile does not include one.");
+  } else if (/(?:requires|must have|need(?:s)?|only works on|available only on)[^.]{0,100}\b(?:smartphone|android|iphone|mobile phone)\b/i.test(text) && !hasPhone) {
+    hardBlockers.push("Current evidence says a smartphone is required, but your profile does not include one.");
+  }
+
+  const idMatch = text.match(/(?:requires|must provide|need(?:s)?|accepts only)[^.]{0,100}\b(nin|national id|passport|driver'?s licence|driver'?s license|voter'?s card)\b/i);
+  if (idMatch && hasNoId) {
+    hardBlockers.push(`Current evidence says ${idMatch[1]} is required, but your profile has no listed ID.`);
+  }
+
+  const skillMap = [
+    ["design", "design"],
+    ["video", "video"],
+    ["programming", "programming"],
+    ["coding", "programming"],
+    ["writing", "writing"],
+    ["social media", "social media"],
+    ["teaching", "teaching"]
+  ];
+  for (const [term, skill] of skillMap) {
+    if (new RegExp(`(?:requires|need(?:s)?|must have|experience in)[^.]{0,100}\\b${term}\\b`, "i").test(text) &&
+        (hasNoSkills || !skills.some(x => x.includes(skill)))) {
+      hardBlockers.push(`Current evidence says ${term} skills are required, but your profile does not list that skill.`);
+      break;
+    }
+  }
+
+  if (/(?:requires|need(?:s)?|must have)[^.]{0,80}\b(?:experience|experienced)\b/i.test(text) &&
+      experience.includes("complete beginner")) {
+    hardBlockers.push("Current evidence indicates prior experience is required, but your profile says you are a complete beginner.");
+  }
+
+  const costMatch = text.match(/(?:requires|costs|fee(?:s)?|minimum(?: fee)?|deposit)[^.]{0,100}(?:₦|ngn|naira)\s?([0-9,]+)/i);
+  if (costMatch) {
+    const required = Number(costMatch[1].replace(/,/g, ""));
+    const budgetMatch = budget.match(/₦?([0-9,]+)[^0-9]+₦?([0-9,]+)/);
+    const zeroBudget = budget.includes("₦0");
+    const maxBudget = budget.includes("50,000+") ? Infinity : budgetMatch ? Number(budgetMatch[2].replace(/,/g, "")) : 0;
+    if (required > maxBudget) {
+      hardBlockers.push(`Current evidence indicates a starting cost of about ₦${required.toLocaleString()}, above your selected budget.`);
+    } else if (zeroBudget && required > 0) {
+      hardBlockers.push(`Current evidence indicates a starting cost of about ₦${required.toLocaleString()}, but your selected budget is ₦0.`);
+    }
+  }
+
+  if (/(?:requires|need(?:s)?|must have)[^.]{0,100}\b(?:3\+|at least 3|three)\s*(?:hours?|hrs?)\b/i.test(text) &&
+      String(profile?.time || "").toLowerCase().includes("under 1 hour")) {
+    cautions.push("Current evidence suggests at least 3 hours/day may be needed, while your selected time is under 1 hour/day.");
+  }
+
+  if (!hardBlockers.length && !cautions.length) {
+    matches.push("No clear profile blocker was found in the current evidence.");
+  }
+
+  return { hardBlockers, cautions, matches };
+}
+
 function buildResearchBreakdown({ name, claim, sources, profile }) {
   const text = sources.map(s => String(s.content || "")).join(" ").toLowerCase();
   const has = pattern => pattern.test(text);
