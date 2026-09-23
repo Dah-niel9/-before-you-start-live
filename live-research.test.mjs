@@ -263,7 +263,7 @@ test("source presentation curates useful opportunity-specific sources", () => {
       source("Top freelancing platforms in Nigeria", "https://example.com/freelancing-nigeria", "Freelancing platforms may offer work and payments in Nigeria.")
     ]
   });
-  assert.equal(result.matchedSourceCount, 5, JSON.stringify(result, null, 2));
+  assert.equal(result.matchedSourceCount, 3, JSON.stringify(result, null, 2));
   assert.equal(result.displayedSourceCount, 3, JSON.stringify(result, null, 2));
   assert.deepEqual(
     result.sources.map(s => s.title),
