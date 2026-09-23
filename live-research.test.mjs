@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { assessLiveEvidence } from "./worker-live.js";
@@ -185,4 +186,16 @@ test("unrelated negative sources cannot force SKIP", () => {
   };
   const result = assessLiveEvidence(input);
   assert.equal(result.verdict, "TRY", JSON.stringify(result, null, 2));
+});
+
+
+test("live research uses the existing Before You Start result layout", () => {
+  const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
+  assert.match(html, /function consideredResearch/);
+  assert.match(html, /showResult\(name,researchO,u,r,true,'research'\)/);
+  assert.match(html, /What we considered/);
+  assert.match(html, /Three checks/);
+  assert.match(html, /💰 Real cost/);
+  assert.doesNotMatch(html, /Before You Start breakdown/);
+  assert.doesNotMatch(html, /Sources checked/);
 });
