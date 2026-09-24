@@ -533,8 +533,8 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
       evidence: findEvidence([/withdraw|withdrawal|minimum payout|payout threshold|threshold|payment schedule|paid (?:weekly|monthly)/i]) || "No clear current withdrawal condition was found."
     },
     earnings: {
-      status: findEvidence([/earnings|income|revenue|monetiz|rpm|cpm|rate|hourly|per task|per project|not guaranteed|var(?:y|ies)/i]) ? "Earnings evidence found" : "Not clearly stated",
-      evidence: findEvidence([/earnings|income|revenue|monetiz|rpm|cpm|rate|hourly|per task|per project|not guaranteed|var(?:y|ies)/i]) || "No clear current earnings information was found."
+      status: findEvidence([/earnings|income|revenue|rpm|cpm|rate|hourly|per task|per project|not guaranteed|var(?:y|ies)/i]) ? "Earnings evidence found" : "Not clearly stated",
+      evidence: findEvidence([/earnings|income|revenue|rpm|cpm|rate|hourly|per task|per project|not guaranteed|var(?:y|ies)/i]) || "No clear current earnings information was found."
     },
     availability: {
       status: findEvidence([/current project|current task|availability|available|project-dependent|waitlist|invite-only|qualification|limited|eligible/i]) ? "Current/conditional evidence found" : "Needs confirmation",
