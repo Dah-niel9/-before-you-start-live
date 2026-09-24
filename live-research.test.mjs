@@ -363,3 +363,22 @@ test("YouTube content-creation aliases keep relevant YouTube evidence", () => {
   assert.match(result.researchBreakdown.earnings.evidence, /earnings|revenue|vary/i);
   assert.doesNotMatch(result.researchBreakdown.nigeriaAccess.evidence, /sources were checked|current web research/i);
 });
+
+
+test("category findings can come from sentences inside a trusted opportunity source", () => {
+  const result = assessLiveEvidence({
+    name: "YouTube Content-Creation",
+    claim: "Payment for content creation",
+    answer: "YouTube information was found.",
+    profile: { devices: ["Android phone", "iPhone"], budgetLabel: "₦0", experience: "Complete beginner", time: "1–3 hours/day", goals: ["Steady Income"] },
+    sources: [
+      source("YouTube Partner Program Nigeria", "https://support.google.com/youtube/", "Live in a country or region in which the YouTube Partner Program is available. Have 500 subscribers and 3 public uploads in the past 90 days."),
+      source("YouTube payments", "https://support.google.com/adsense/", "Eligible creators receive payments through AdSense after meeting applicable payment thresholds. Earnings vary and are not guaranteed.")
+    ]
+  });
+  assert.match(result.researchBreakdown.nigeriaAccess.evidence, /country or region|available/i);
+  assert.match(result.researchBreakdown.requirements.evidence, /500 subscribers|public uploads/i);
+  assert.match(result.researchBreakdown.gettingPaid.evidence, /AdSense|payments/i);
+  assert.match(result.researchBreakdown.withdrawal.evidence, /payment threshold/i);
+  assert.match(result.researchBreakdown.earnings.evidence, /Earnings vary|earnings/i);
+});
