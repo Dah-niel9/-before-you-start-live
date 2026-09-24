@@ -527,9 +527,14 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
 
   const sentences = relevantSources.flatMap(source => {
     const raw = String(source.content || "").replace(/\s+/g, " ").trim();
+    const sourceIdentityText = `${source.title || ""} ${source.url || ""} ${raw}`.toLowerCase();
+    const sourceSpecific = opportunityAnchors.some(anchor =>
+      sourceIdentityText.includes(anchor) ||
+      sourceIdentityText.replace(/[^a-z0-9]/g, "").includes(anchor.replace(/[^a-z0-9]/g, ""))
+    );
     return raw
       .split(/(?<=[.!?])\s+/)
-      .map(text => ({ text: text.trim(), title: source.title || "", url: source.url || "" }))
+      .map(text => ({ text: text.trim(), title: source.title || "", url: source.url || "", sourceSpecific }))
       .filter(item => item.text.length >= 20);
   });
 
@@ -538,6 +543,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     .filter(Boolean);
 
   const isOpportunitySpecific = item => {
+    if (item.sourceSpecific) return true;
     const lower = item.text.toLowerCase();
     if (opportunityAnchors.some(anchor => lower.includes(anchor))) return true;
     try {
