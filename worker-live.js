@@ -187,6 +187,11 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     const text = source.text;
     let score = 0;
     if (normalizedName && title.includes(normalizedName)) score += 5;
+    const aliasTitleMatch = opportunityAliases.some(alias => {
+      const normalizedAlias = String(alias || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      return normalizedAlias && title.includes(normalizedAlias);
+    });
+    if (aliasTitleMatch) score += 5;
     if (isLikelyOfficialHost(source.host, nameTokens)) score += 4;
     if (/(support|help|docs|documentation|terms|privacy|payment|payout|withdraw|eligib|requirement|pricing|how it works)/i.test(title)) score += 3;
     if (normalizedName && text.includes(normalizedName)) score += 2;
