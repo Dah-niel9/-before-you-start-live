@@ -587,7 +587,8 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   const withdrawalEvidence = findEvidence([
     { pattern: /\b(?:payment|payout|withdrawal|withdraw)\b[^.]{0,120}\b(?:threshold|minimum|schedule|weekly|monthly|limit)\b/i, weight: 12 },
     { pattern: /\b(?:minimum payout|payout threshold|payment threshold|withdrawal threshold)\b/i, weight: 12 },
-    { pattern: /\bthreshold\b/i, weight: 8 }
+    { pattern: /\bthresholds?\b/i, weight: 14 },
+    { pattern: /\b(?:payment|payout|withdrawal)\s+thresholds?\b/i, weight: 16 }
   ]);
   const earningsEvidence = findEvidence([
     { pattern: /\b(?:earnings?|income|revenue|rpm|cpm|rate|hourly|per task|per project)\b/i, weight: 10 },
