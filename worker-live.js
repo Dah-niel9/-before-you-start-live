@@ -249,9 +249,18 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
       return pattern.test(compact);
     }
     const sentences = compact.split(/(?<=[.!?])\s+/);
-    return opportunityAnchors.some(anchor =>
-      sentences.some(sentence => sentence.includes(anchor) && pattern.test(sentence))
-    );
+    const sourceIsOpportunitySpecific = opportunityAliases.some(alias => {
+      const normalizedAlias = alias.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      return normalizedAlias && (
+        compact.includes(normalizedAlias) ||
+        source.host.replace(/[^a-z0-9]/g, "").includes(normalizedAlias.replace(/\s+/g, ""))
+      );
+    });
+    return sourceIsOpportunitySpecific
+      ? sentences.some(sentence => pattern.test(sentence))
+      : opportunityAnchors.some(anchor =>
+          sentences.some(sentence => sentence.includes(anchor) && pattern.test(sentence))
+        );
   };
 
   const supportsPositivePattern = (source, pattern) => {
@@ -265,9 +274,18 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
       return isUsableSentence(compact);
     }
     const sentences = compact.split(/(?<=[.!?])\s+/);
-    return opportunityAnchors.some(anchor =>
-      sentences.some(sentence => sentence.includes(anchor) && isUsableSentence(sentence))
-    );
+    const sourceIsOpportunitySpecific = opportunityAliases.some(alias => {
+      const normalizedAlias = alias.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      return normalizedAlias && (
+        compact.includes(normalizedAlias) ||
+        source.host.replace(/[^a-z0-9]/g, "").includes(normalizedAlias.replace(/\s+/g, ""))
+      );
+    });
+    return sourceIsOpportunitySpecific
+      ? sentences.some(isUsableSentence)
+      : opportunityAnchors.some(anchor =>
+          sentences.some(sentence => sentence.includes(anchor) && isUsableSentence(sentence))
+        );
   };
 
   const sourceSignals = relevantSources.map(source => {
