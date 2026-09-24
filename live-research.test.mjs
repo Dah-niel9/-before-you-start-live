@@ -341,3 +341,25 @@ test("live research confidence reflects evidence coverage", () => {
   });
   assert.equal(high.confidence, "High");
 });
+
+
+test("YouTube content-creation aliases keep relevant YouTube evidence", () => {
+  const result = assessLiveEvidence({
+    name: "YouTube Content-Creation",
+    claim: "Payment for content creation",
+    answer: "YouTube monetization and creator information was found.",
+    profile: { devices: ["Android phone", "iPhone"], budgetLabel: "₦0", experience: "Complete beginner", time: "3+ hours/day", goals: ["Steady Income"] },
+    sources: [
+      source("YouTube official", "https://www.youtube.com/", "YouTube is an established platform. YouTube Partner Program eligibility and monetization information are documented."),
+      source("YouTube Nigeria availability", "https://support.google.com/youtube/", "YouTube is available to users in Nigeria. Eligible creators can apply for the YouTube Partner Program."),
+      source("YouTube monetization", "https://support.google.com/youtube/answer/94522", "YouTube monetization can include advertising revenue and other features. Earnings vary and are not guaranteed."),
+      source("YouTube payments", "https://support.google.com/adsense/", "Eligible YouTube creators receive payments through AdSense for YouTube after meeting applicable payment thresholds."),
+      source("Generic online income guide", "https://example.com/make-money-online", "Many online platforms can offer income opportunities to Nigerian users.")
+    ]
+  });
+  assert.equal(result.matchedSourceCount, 4, JSON.stringify(result, null, 2));
+  assert.match(result.researchBreakdown.nigeriaAccess.evidence, /Nigeria/i);
+  assert.match(result.researchBreakdown.gettingPaid.evidence, /AdSense|payment/i);
+  assert.match(result.researchBreakdown.earnings.evidence, /earnings|revenue|vary/i);
+  assert.doesNotMatch(result.researchBreakdown.nigeriaAccess.evidence, /sources were checked|current web research/i);
+});
