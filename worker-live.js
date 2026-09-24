@@ -108,7 +108,7 @@ async function handleResearch(request, env) {
         ? data.answer
         : "Current sources were found, but Tavily did not return a verified opportunity-specific research summary.",
       sources,
-      researchBreakdown: buildResearchBreakdown({ name, claim, sources: assessment.sources || [], profile }),
+      researchBreakdown: buildResearchBreakdown({ name, claim, sources: assessment.sources || [], profile, assessment }),
       ...assessment
     });
   } catch (error) {
@@ -342,11 +342,19 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     cautions.push(...profileFit.cautions);
   }
 
+  const evidenceSpecificity = sourceCount
+    + officialSources
+    + positiveHits
+    - (negativeSources.length && positiveHits ? 1 : 0);
   const confidence = verdict === "NOT ENOUGH RELIABLE EVIDENCE"
     ? "Low"
     : verdict === "SKIP"
-      ? (negativeSources.length >= 2 || officialNegativeSources.length ? "High for the flagged risks" : "Medium")
-      : "Medium";
+      ? (officialNegativeSources.length >= 1 || negativeSources.length >= 2 ? "High for the flagged risks" : "Medium")
+      : (sourceCount >= 3 && positiveHits >= 3 && officialSources >= 1 && evidenceSpecificity >= 7
+        ? "High"
+        : sourceCount >= 2 && (positiveHits >= 1 || cautionHits >= 1)
+          ? "Medium"
+          : "Low");
 
   const changes = verdict === "TRY"
     ? "Confirm the exact current requirements, payment terms and availability before starting."
@@ -369,7 +377,8 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE"
       ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."]
       : [],
-    changes
+    changes,
+    researchBreakdown: buildResearchBreakdown({ name, claim, sources: curatedSources, profile, assessment: { blockers, cautions, unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE" ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."] : [] } })
   };
 }
 function assessProfileFit({ sources, profile }) {
@@ -446,49 +455,124 @@ function assessProfileFit({ sources, profile }) {
   return { hardBlockers, cautions, matches };
 }
 
-function buildResearchBreakdown({ name, claim, sources, profile }) {
-  const text = sources.map(s => String(s.content || "")).join(" ").toLowerCase();
-  const has = pattern => pattern.test(text);
-  const fit = label => profile && label ? label : "";
+export function buildResearchBreakdown({ name, claim, sources = [], profile = {}, assessment = {} }) {
+  const normalizedName = String(name || "").trim();
+  const relevantSources = Array.isArray(sources) ? sources : [];
+  const allText = relevantSources.map(s => String(s.content || "")).join(" ");
+  const normalizedAllText = allText.toLowerCase();
 
-  return {
+  const sentences = relevantSources.flatMap(source => {
+    const raw = String(source.content || "").replace(/\s+/g, " ").trim();
+    return raw
+      .split(/(?<=[.!?])\s+/)
+      .map(text => ({ text: text.trim(), title: source.title || "", url: source.url || "" }))
+      .filter(item => item.text.length >= 20);
+  });
+
+  const opportunityAnchors = [
+    normalizedName.toLowerCase(),
+    ...normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter(token => token.length >= 4)
+  ].filter(Boolean);
+
+  const isOpportunitySpecific = item => {
+    const lower = item.text.toLowerCase();
+    if (opportunityAnchors.some(anchor => lower.includes(anchor))) return true;
+    try {
+      const host = new URL(item.url).hostname.toLowerCase();
+      const compactHost = host.replace(/[^a-z0-9]/g, "");
+      return opportunityAnchors.some(anchor => compactHost.includes(anchor.replace(/[^a-z0-9]/g, "")));
+    } catch {
+      return false;
+    }
+  };
+
+  const cleanSentence = text => String(text || "")
+    .replace(/^[-•*]\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 260);
+
+  const findEvidence = patterns => {
+    const candidates = sentences.filter(isOpportunitySpecific);
+    for (const pattern of patterns) {
+      const match = candidates.find(item => pattern.test(item.text));
+      if (match) return cleanSentence(match.text);
+    }
+    return "";
+  };
+
+  const claimText = String(claim || "").trim();
+  const workTypeEvidence = findEvidence([
+    /(?:work|job|role|project|task|creator|create|content|service|freelance|research|testing|data)/i
+  ]);
+
+  const breakdown = {
+    opportunity: {
+      status: claimText ? "Claim checked against current evidence" : (workTypeEvidence ? "Evidence found" : "Not clearly stated"),
+      evidence: claimText || workTypeEvidence || "The current evidence does not clearly describe the work.",
+      workType: workTypeEvidence || claimText || "Not clearly stated"
+    },
     legitimacy: {
-      status: has(/legitimate|established|reputable|registered company|official site|terms of service|privacy policy/) ? "Evidence found" : "Not clearly established",
-      evidence: "Current sources were checked for legitimacy signals, official documentation and serious warnings."
+      status: findEvidence([/legitimate|established|reputable|registered company|official (?:site|website)|terms of service|privacy policy|founded in/i]) ? "Evidence found" : "Not clearly established",
+      evidence: findEvidence([/legitimate|established|reputable|registered company|official (?:site|website)|terms of service|privacy policy|founded in/i]) || "No clear opportunity-specific legitimacy evidence was found."
     },
     nigeriaAccess: {
-      status: has(/nigeria[^.]{0,180}(supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/) ? "Evidence found" : "Needs confirmation",
-      evidence: "Sources were checked specifically for Nigeria eligibility and restrictions."
+      status: findEvidence([/nigeria[^.]{0,180}(?:supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/i]) ? "Evidence found" : "Needs confirmation",
+      evidence: findEvidence([/nigeria[^.]{0,180}(?:supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/i]) || "No clear current Nigeria-access evidence was found."
     },
     requirements: {
-      status: has(/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone/) ? "Conditions found" : "Not clearly stated",
-      evidence: "Sources were checked for device, KYC, ID, skill and qualification requirements."
+      status: findEvidence([/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone|computer|experience|skill/i]) ? "Conditions found" : "Not clearly stated",
+      evidence: findEvidence([/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone|computer|experience|skill/i]) || "No clear device, ID, skill or qualification requirement was found."
     },
     gettingPaid: {
-      status: has(/payout|withdraw|payment|paid|bank|paypal|payoneer|paystack|flutterwave/) ? "Payment evidence found" : "Needs confirmation",
-      evidence: "Sources were checked for payment methods, withdrawal conditions and payout information."
+      status: findEvidence([/payment|payout|paid|bank|paypal|payoneer|paystack|flutterwave|adsense/i]) ? "Payment evidence found" : "Needs confirmation",
+      evidence: findEvidence([/payment|payout|paid|bank|paypal|payoneer|paystack|flutterwave|adsense/i]) || "No clear current payment method was found."
+    },
+    withdrawal: {
+      status: findEvidence([/withdraw|withdrawal|minimum payout|payout threshold|threshold|payment schedule|paid (?:weekly|monthly)/i]) ? "Withdrawal evidence found" : "Needs confirmation",
+      evidence: findEvidence([/withdraw|withdrawal|minimum payout|payout threshold|threshold|payment schedule|paid (?:weekly|monthly)/i]) || "No clear current withdrawal condition was found."
     },
     earnings: {
-      status: has(/earnings|income|pay|payout|rate|hourly|per task|per project/) ? "Earnings information found" : "Not clearly stated",
-      evidence: "Sources were checked for earning information without treating marketing claims as guaranteed income."
+      status: findEvidence([/earnings|income|revenue|monetiz|rpm|cpm|rate|hourly|per task|per project|not guaranteed|var(?:y|ies)/i]) ? "Earnings evidence found" : "Not clearly stated",
+      evidence: findEvidence([/earnings|income|revenue|monetiz|rpm|cpm|rate|hourly|per task|per project|not guaranteed|var(?:y|ies)/i]) || "No clear current earnings information was found."
     },
     availability: {
-      status: has(/project-dependent|availability|limited|waitlist|qualification|invite-only|current projects|current tasks/) ? "Variable / conditional" : "Needs confirmation",
-      evidence: "Sources were checked for current project or task availability."
+      status: findEvidence([/current project|current task|availability|available|project-dependent|waitlist|invite-only|qualification|limited|eligible/i]) ? "Current/conditional evidence found" : "Needs confirmation",
+      evidence: findEvidence([/current project|current task|availability|available|project-dependent|waitlist|invite-only|qualification|limited|eligible/i]) || "No clear current availability information was found."
     },
     realCost: {
-      status: has(/fee|fees|commission|minimum payout|threshold|deposit|invest|data|subscription/) ? "Cost conditions found" : "No clear upfront cost found",
-      evidence: "Sources were checked for money, fees, payout thresholds and other practical costs."
+      status: findEvidence([/fee|fees|commission|minimum payout|threshold|deposit|invest|subscription|equipment|camera|phone|data|internet|free to join|free to start/i]) ? "Cost evidence found" : "No clear upfront cost found",
+      evidence: findEvidence([/fee|fees|commission|minimum payout|threshold|deposit|invest|subscription|equipment|camera|phone|data|internet|free to join|free to start/i]) || "No clear upfront cash cost was found in the available evidence."
     },
     yourFit: {
       status: "Profile considered",
-      evidence: [fit(profile?.devices?.join(", ")), fit(profile?.budgetLabel), fit(profile?.experience), fit(profile?.time), fit(profile?.goals?.join(", "))].filter(Boolean).join(" • ") || "Your submitted profile is considered by the decision layer."
+      evidence: [
+        profile?.devices?.join(", "),
+        profile?.budgetLabel,
+        profile?.experience,
+        profile?.time,
+        Array.isArray(profile?.goals) ? profile.goals.join(", ") : ""
+      ].filter(Boolean).join(" • ") || "Your submitted profile is considered when the evidence contains a clear requirement."
     },
     biggestCatch: {
-      status: "See verdict conditions",
-      evidence: "The decision layer highlights blockers, cautions and unresolved evidence rather than hiding uncertainty."
+      status: "Evidence-based",
+      evidence: ""
     }
   };
+
+  const assessmentBlockers = Array.isArray(assessment.blockers) ? assessment.blockers : [];
+  const assessmentCautions = Array.isArray(assessment.cautions) ? assessment.cautions : [];
+  const assessmentUnknowns = Array.isArray(assessment.unknowns) ? assessment.unknowns : [];
+
+  breakdown.biggestCatch.evidence =
+    assessmentBlockers[0] ||
+    assessmentCautions[0] ||
+    assessmentUnknowns[0] ||
+    findEvidence([/not guaranteed|depends|var(?:y|ies)|project-dependent|limited|competition|qualification|kyc|identity verification|fee|commission|withdraw/i]) ||
+    "No specific major catch was identified in the available opportunity-specific evidence.";
+
+  breakdown.legitimacy.evidence = breakdown.legitimacy.evidence.replace(/^Current sources were checked.*$/i, "");
+  return breakdown;
 }
 
 function json(value, status = 200) {
