@@ -598,8 +598,8 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
       evidence: findEvidence([/nigeria[^.]{0,180}(?:supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/i, /(?:nigeria|nigerian)[^.]{0,120}(?:available|eligible|supported|accepts|open to|can participate)/i], { includeTitle: true }) || "No clear current Nigeria-access evidence was found."
     },
     requirements: {
-      status: findEvidence([/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone|computer|experience|skill/i]) ? "Conditions found" : "Not clearly stated",
-      evidence: findEvidence([/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone|computer|experience|skill/i]) || "No clear device, ID, skill or qualification requirement was found."
+      status: findEvidence([/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone|computer|experience|skill|\\b(?:\\d{2,}|(?:five|six|seven|eight|nine|ten|hundred|thousand))\\s*(?:subscribers?|followers?|uploads?|views?|watch hours?)/i]) ? "Conditions found" : "Not clearly stated",
+      evidence: findEvidence([/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone|computer|experience|skill|\\b(?:\\d{2,}|(?:five|six|seven|eight|nine|ten|hundred|thousand))\\s*(?:subscribers?|followers?|uploads?|views?|watch hours?)/i]) || "No clear device, ID, skill or qualification requirement was found."
     },
     gettingPaid: {
       status: findEvidence([/payment|payout|paid|bank|paypal|payoneer|paystack|flutterwave|adsense/i]) ? "Payment evidence found" : "Needs confirmation",
