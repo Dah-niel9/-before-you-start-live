@@ -290,3 +290,54 @@ test("source curation can return fewer than five when only a few sources are use
   assert.equal(result.displayedSourceCount, 1, JSON.stringify(result, null, 2));
   assert.equal(result.sources[0].title, "OneForma official website");
 });
+
+
+test("live research breakdown contains opportunity-specific findings, not methodology boilerplate", () => {
+  const result = assessLiveEvidence({
+    name: "YouTube",
+    claim: "Create and publish videos for potential monetization",
+    answer: "YouTube information was found.",
+    profile: { devices: ["Android phone", "iPhone"], budgetLabel: "₦0", experience: "Complete beginner", time: "3+ hours/day", goals: ["Steady Income"] },
+    sources: [
+      source("YouTube official", "https://www.youtube.com/", "YouTube is an established platform. YouTube Partner Program eligibility and monetization information are documented."),
+      source("YouTube Nigeria availability", "https://support.google.com/youtube/", "YouTube is available to users in Nigeria. Eligible creators can apply for the YouTube Partner Program."),
+      source("YouTube monetization", "https://support.google.com/youtube/answer/94522", "YouTube monetization can include advertising revenue and other features. Earnings vary and are not guaranteed."),
+      source("YouTube payments", "https://support.google.com/adsense/", "Eligible YouTube creators receive payments through AdSense for YouTube after meeting applicable payment thresholds.")
+    ]
+  });
+  const b = result.researchBreakdown;
+  assert.match(b.opportunity.evidence, /Create and publish videos|YouTube/i);
+  assert.doesNotMatch(b.opportunity.evidence, /sources were checked|current web research/i);
+  assert.match(b.nigeriaAccess.evidence, /Nigeria/i);
+  assert.match(b.gettingPaid.evidence, /AdSense|payment/i);
+  assert.match(b.withdrawal.evidence, /threshold|payment/i);
+  assert.match(b.earnings.evidence, /earnings|revenue|vary/i);
+  assert.doesNotMatch(b.biggestCatch.evidence, /decision layer highlights|sources were checked/i);
+});
+
+test("live research confidence reflects evidence coverage", () => {
+  const low = assessLiveEvidence({
+    name: "Thin Work",
+    claim: "Online work",
+    answer: "",
+    profile: {},
+    sources: [
+      source("Thin Work mention", "https://example.com/thin-work", "Thin Work is mentioned online.")
+    ]
+  });
+  assert.equal(low.confidence, "Low");
+
+  const high = assessLiveEvidence({
+    name: "Strong Work",
+    claim: "Remote work",
+    answer: "Strong Work information was found.",
+    profile: {},
+    sources: [
+      source("Strong Work official", "https://strongwork.com", "Strong Work is an established legitimate company with an official website and terms of service."),
+      source("Strong Work Nigeria", "https://www.gov.ng/strongwork", "Strong Work is supported in Nigeria. Nigerian users are eligible to participate."),
+      source("Strong Work payments", "https://example.com/strongwork-payments", "Strong Work payouts are available through a supported payment option for workers."),
+      source("Strong Work requirements", "https://example.com/strongwork-requirements", "Strong Work requirements are documented for eligible workers.")
+    ]
+  });
+  assert.equal(high.confidence, "High");
+});
