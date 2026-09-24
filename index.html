@@ -347,20 +347,21 @@ function consideredUnknown(u){
 }
 function consideredResearch(data,u,claim){
   const b=data.researchBreakdown||{};
-  const ev=(key,fallback='Needs confirmation')=>String((b[key]&&b[key].evidence)||fallback);
+  const ev=(key,fallback='No clear current evidence found.')=>String((b[key]&&b[key].evidence)||fallback);
   const st=(key,fallback='Needs confirmation')=>String((b[key]&&b[key].status)||fallback);
+  const workType=(b.opportunity&&b.opportunity.workType)||claim||'Not clearly stated';
   const desktop=`<div class="consider-grid">
-    <div class="consider-card"><div class="consider-title">Opportunity</div>${row('What the work is',claim||'Current opportunity claim was checked against live evidence.')}${row('Work type','Current web research')}${row('Current availability',ev('availability'))}</div>
-    <div class="consider-card"><div class="consider-title">Requirements</div>${row('Nigeria access',ev('nigeriaAccess'))}${row('Phone / laptop',st('requirements'))}${row('KYC / ID',ev('requirements'))}</div>
-    <div class="consider-card"><div class="consider-title">Getting Paid</div>${row('Payment methods',ev('gettingPaid'))}${row('Withdrawal',ev('gettingPaid'))}${row('Starting cost',ev('realCost'))}</div>
-    <div class="consider-card"><div class="consider-title">Earnings</div>${row('Earning potential',ev('earnings'))}${row('Time to first money',st('availability'))}</div>
+    <div class="consider-card"><div class="consider-title">Opportunity</div>${row('What the work is',claim||ev('opportunity'))}${row('Work type',workType)}${row('Current availability',ev('availability'))}</div>
+    <div class="consider-card"><div class="consider-title">Requirements</div>${row('Nigeria access',ev('nigeriaAccess'))}${row('Phone / laptop',ev('requirements'))}${row('KYC / ID',ev('requirements'))}</div>
+    <div class="consider-card"><div class="consider-title">Getting Paid</div>${row('Payment methods',ev('gettingPaid'))}${row('Withdrawal',ev('withdrawal'))}${row('Starting cost',ev('realCost'))}</div>
+    <div class="consider-card"><div class="consider-title">Earnings</div>${row('Earning potential',ev('earnings'))}${row('Time to first money',ev('availability'))}</div>
     <div class="consider-card"><div class="consider-title">Your Fit</div>${row('Devices',u.devices.join(', '))}${row('Budget',u.budgetLabel)}${row('ID',u.ids.join(', '))}${row('Experience',u.experience)}${row('Time',u.time)}${row('Goal',u.goals.join(', '))}</div>
   </div>`;
   const mobile=`<div class="consider-mobile">
-    <details><summary>Opportunity<span class="consider-summary">Current web research • opportunity-specific</span></summary><div class="consider-body">${row('What the work is',claim||'Current opportunity claim was checked against live evidence.')}${row('Work type','Current web research')}${row('Current availability',ev('availability'))}</div></details>
-    <details><summary>Requirements<span class="consider-summary">${escapeHtml(st('requirements'))}</span></summary><div class="consider-body">${row('Nigeria access',ev('nigeriaAccess'))}${row('Phone / laptop',st('requirements'))}${row('KYC / ID',ev('requirements'))}</div></details>
-    <details><summary>Getting paid<span class="consider-summary">Payment method • withdrawal • starting cost</span></summary><div class="consider-body">${row('Payment methods',ev('gettingPaid'))}${row('Withdrawal',ev('gettingPaid'))}${row('Starting cost',ev('realCost'))}</div></details>
-    <details><summary>Earnings<span class="consider-summary">${escapeHtml(st('earnings'))} • ${escapeHtml(st('availability'))}</span></summary><div class="consider-body">${row('Earning potential',ev('earnings'))}${row('Time to first money',st('availability'))}</div></details>
+    <details><summary>Opportunity<span class="consider-summary">${escapeHtml(st('opportunity','Needs confirmation'))}</span></summary><div class="consider-body">${row('What the work is',claim||ev('opportunity'))}${row('Work type',workType)}${row('Current availability',ev('availability'))}</div></details>
+    <details><summary>Requirements<span class="consider-summary">${escapeHtml(st('requirements'))}</span></summary><div class="consider-body">${row('Nigeria access',ev('nigeriaAccess'))}${row('Phone / laptop',ev('requirements'))}${row('KYC / ID',ev('requirements'))}</div></details>
+    <details><summary>Getting paid<span class="consider-summary">${escapeHtml(st('gettingPaid'))}</span></summary><div class="consider-body">${row('Payment methods',ev('gettingPaid'))}${row('Withdrawal',ev('withdrawal'))}${row('Starting cost',ev('realCost'))}</div></details>
+    <details><summary>Earnings<span class="consider-summary">${escapeHtml(st('earnings'))} • ${escapeHtml(st('availability'))}</span></summary><div class="consider-body">${row('Earning potential',ev('earnings'))}${row('Time to first money',ev('availability'))}</div></details>
     <details><summary>Your fit<span class="consider-summary">${escapeHtml(u.devices.join(', '))} • ${escapeHtml(u.budgetLabel)}</span></summary><div class="consider-body">${row('Devices',u.devices.join(', '))}${row('Budget',u.budgetLabel)}${row('ID',u.ids.join(', '))}${row('Experience',u.experience)}${row('Time',u.time)}${row('Goal',u.goals.join(', '))}</div></details>
   </div>`;
   return desktop+mobile;
@@ -407,19 +408,19 @@ function showLiveResearchResult(name,data,u){
   const firstSource=(data.sources||[]).find(x=>x&&x.url);
   const researchO={
     claim:cleanResearchText(data.claim||$('oppClaim').value.trim(),500),
-    cat:'Current web research',
-    availability:(breakdown.availability&&breakdown.availability.status)||'Needs confirmation',
-    nigeria:(breakdown.nigeriaAccess&&breakdown.nigeriaAccess.status)||'Needs confirmation',
-    phone:(breakdown.requirements&&breakdown.requirements.status)||'Needs confirmation',
-    laptop:(breakdown.requirements&&breakdown.requirements.status)||'Needs confirmation',
-    kyc:(breakdown.requirements&&breakdown.requirements.status)||'Needs confirmation',
+    cat:(breakdown.opportunity&&breakdown.opportunity.workType)||'Current web research',
+    availability:(breakdown.availability&&breakdown.availability.evidence)||'No clear current availability information was found.',
+    nigeria:(breakdown.nigeriaAccess&&breakdown.nigeriaAccess.evidence)||'No clear current Nigeria-access evidence was found.',
+    phone:(breakdown.requirements&&breakdown.requirements.evidence)||'No clear device requirement was found.',
+    laptop:(breakdown.requirements&&breakdown.requirements.evidence)||'No clear device requirement was found.',
+    kyc:(breakdown.requirements&&breakdown.requirements.evidence)||'No clear ID requirement was found.',
     ids:['See current evidence'],
-    payment:(breakdown.gettingPaid&&breakdown.gettingPaid.status)||'Needs confirmation',
-    withdrawal:(breakdown.gettingPaid&&breakdown.gettingPaid.evidence)||'Needs confirmation',
-    startup:(breakdown.realCost&&breakdown.realCost.status)||'Needs confirmation',
-    economics:(breakdown.earnings&&breakdown.earnings.status)||'Needs confirmation',
-    time:(breakdown.availability&&breakdown.availability.status)||'Variable',
-    catch:(breakdown.biggestCatch&&breakdown.biggestCatch.evidence)||'Review the highlighted conditions, uncertainties and trade-offs before committing serious time.',
+    payment:(breakdown.gettingPaid&&breakdown.gettingPaid.evidence)||'No clear current payment method was found.',
+    withdrawal:(breakdown.withdrawal&&breakdown.withdrawal.evidence)||'No clear current withdrawal condition was found.',
+    startup:(breakdown.realCost&&breakdown.realCost.evidence)||'No clear upfront cash cost was found.',
+    economics:(breakdown.earnings&&breakdown.earnings.evidence)||'No clear current earnings information was found.',
+    time:(breakdown.availability&&breakdown.availability.evidence)||'No clear current availability information was found.',
+    catch:(breakdown.biggestCatch&&breakdown.biggestCatch.evidence)||'No specific major catch was identified in the available evidence.',
     confidence:data.confidence||'Current evidence',
     lastVerified:'Current web research',
     source:firstSource?firstSource.url:'',
