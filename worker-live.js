@@ -561,10 +561,13 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     .trim()
     .slice(0, 260);
 
-  const findEvidence = patterns => {
+  const findEvidence = (patterns, options = {}) => {
     const candidates = sentences.filter(isOpportunitySpecific);
     for (const pattern of patterns) {
-      const match = candidates.find(item => pattern.test(item.text));
+      const match = candidates.find(item => {
+        const searchable = options.includeTitle ? `${item.title} ${item.text}` : item.text;
+        return pattern.test(searchable);
+      });
       if (match) return cleanSentence(match.text);
     }
     return "";
@@ -586,8 +589,8 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
       evidence: findEvidence([/legitimate|established|reputable|registered company|official (?:site|website)|terms of service|privacy policy|founded in/i]) || "No clear opportunity-specific legitimacy evidence was found."
     },
     nigeriaAccess: {
-      status: findEvidence([/nigeria[^.]{0,180}(?:supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/i]) ? "Evidence found" : "Needs confirmation",
-      evidence: findEvidence([/nigeria[^.]{0,180}(?:supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/i]) || "No clear current Nigeria-access evidence was found."
+      status: findEvidence([/nigeria[^.]{0,180}(?:supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/i, /(?:nigeria|nigerian)[^.]{0,120}(?:available|eligible|supported|accepts|open to|can participate)/i], { includeTitle: true }) ? "Evidence found" : "Needs confirmation",
+      evidence: findEvidence([/nigeria[^.]{0,180}(?:supported|available|eligible|accepts|accepted|open to|can participate)|nigerian users|users in nigeria/i, /(?:nigeria|nigerian)[^.]{0,120}(?:available|eligible|supported|accepts|open to|can participate)/i], { includeTitle: true }) || "No clear current Nigeria-access evidence was found."
     },
     requirements: {
       status: findEvidence([/identity verification|kyc|id verification|proof of identity|qualification|application|invite-only|laptop|smartphone|phone|computer|experience|skill/i]) ? "Conditions found" : "Not clearly stated",
