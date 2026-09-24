@@ -43,6 +43,7 @@ async function handleResearch(request, env) {
       claim ? `Claim: "${claim}".` : "",
       url ? `Link: ${url}` : "",
       profileLine,
+      `Use these opportunity terms when relevant: ${getOpportunityAliases(name, claim, url).join(", ")}.`,
       "Check legitimacy, Nigeria access, requirements, payments, costs, availability, earnings, and risks. Prefer official and current sources. Look for concrete evidence, not marketing claims."
     ].filter(Boolean);
 
@@ -160,7 +161,22 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     return false;
   };
 
-  const relevantSources = normalizedSources.filter(matchesOpportunity);
+  const opportunityAliases = getOpportunityAliases(name, claim, url);
+
+  const matchesOpportunityWithAliases = source => {
+    if (!source.text) return false;
+    if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) return true;
+    return opportunityAliases.some(alias => {
+      const normalizedAlias = alias.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (!normalizedAlias) return false;
+      if (source.text.includes(normalizedAlias)) return true;
+      const compactAlias = normalizedAlias.replace(/\s+/g, "");
+      const compactHost = source.host.replace(/[^a-z0-9]/g, "");
+      return compactAlias.length >= 4 && compactHost.includes(compactAlias);
+    });
+  };
+
+  const relevantSources = normalizedSources.filter(matchesOpportunityWithAliases);
   const sourceCount = relevantSources.length;
 
   // Source presentation is separate from verdict evidence: all relevant sources
@@ -455,6 +471,36 @@ function assessProfileFit({ sources, profile }) {
   return { hardBlockers, cautions, matches };
 }
 
+function getOpportunityAliases(name, claim = "", url = "") {
+  const normalized = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const aliases = new Set();
+  if (normalized) aliases.add(normalized);
+
+  const aliasGroups = [
+    {
+      matches: ["youtube", "youtube content creation", "youtube content creator", "youtube content creation in nigeria"],
+      aliases: ["youtube", "youtube creators", "youtube creator", "youtube partner program", "youtube monetization", "youtube studio", "youtube channel", "adsense for youtube"]
+    },
+    {
+      matches: ["google adsense", "adsense"],
+      aliases: ["google adsense", "adsense", "adsense for youtube"]
+    }
+  ];
+
+  for (const group of aliasGroups) {
+    if (group.matches.some(term => normalized === term || normalized.includes(term))) {
+      group.aliases.forEach(alias => aliases.add(alias));
+    }
+  }
+
+  try {
+    const host = url ? new URL(url).hostname.toLowerCase().replace(/^www\./, "") : "";
+    if (host) aliases.add(host);
+  } catch {}
+
+  return [...aliases].filter(alias => alias.length >= 4);
+}
+
 export function buildResearchBreakdown({ name, claim, sources = [], profile = {}, assessment = {} }) {
   const normalizedName = String(name || "").trim();
   const relevantSources = Array.isArray(sources) ? sources : [];
@@ -469,10 +515,9 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
       .filter(item => item.text.length >= 20);
   });
 
-  const opportunityAnchors = [
-    normalizedName.toLowerCase(),
-    ...normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter(token => token.length >= 4)
-  ].filter(Boolean);
+  const opportunityAnchors = getOpportunityAliases(normalizedName, claim)
+    .map(alias => alias.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim())
+    .filter(Boolean);
 
   const isOpportunitySpecific = item => {
     const lower = item.text.toLowerCase();
