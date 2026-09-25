@@ -350,21 +350,39 @@ function consideredResearch(data,u,claim){
   const ev=(key,fallback='No clear current evidence found.')=>String((b[key]&&b[key].evidence)||fallback);
   const st=(key,fallback='Needs confirmation')=>String((b[key]&&b[key].status)||fallback);
   const workType=(b.opportunity&&b.opportunity.workType)||claim||'Not clearly stated';
-  const desktop=`<div class="consider-grid">
-    <div class="consider-card"><div class="consider-title">Opportunity</div>${row('What the work is',claim||ev('opportunity'))}${row('Work type',workType)}${row('Current availability',ev('availability'))}</div>
-    <div class="consider-card"><div class="consider-title">Requirements</div>${row('Nigeria access',ev('nigeriaAccess'))}${row('Phone / laptop',String((b.requirements&&b.requirements.device)||ev('requirements')))}${row('KYC / ID',String((b.requirements&&b.requirements.kyc)||ev('requirements')))}</div>
-    <div class="consider-card"><div class="consider-title">Getting Paid</div>${row('Payment methods',ev('gettingPaid'))}${row('Withdrawal',ev('withdrawal'))}${row('Starting cost',ev('realCost'))}</div>
-    <div class="consider-card"><div class="consider-title">Earnings</div>${row('Earning potential',ev('earnings'))}${row('Time to first money',String((b.availability&&b.availability.timeToFirstMoney)||ev('availability')))}</div>
-    <div class="consider-card"><div class="consider-title">Your Fit</div>${row('Devices',u.devices.join(', '))}${row('Budget',u.budgetLabel)}${row('ID',u.ids.join(', '))}${row('Experience',u.experience)}${row('Time',u.time)}${row('Goal',u.goals.join(', '))}</div>
-  </div>`;
-  const mobile=`<div class="consider-mobile">
-    <details><summary>Opportunity<span class="consider-summary">${escapeHtml(st('opportunity','Needs confirmation'))}</span></summary><div class="consider-body">${row('What the work is',claim||ev('opportunity'))}${row('Work type',workType)}${row('Current availability',ev('availability'))}</div></details>
-    <details><summary>Requirements<span class="consider-summary">${escapeHtml(st('requirements'))}</span></summary><div class="consider-body">${row('Nigeria access',ev('nigeriaAccess'))}${row('Phone / laptop',ev('requirements'))}${row('KYC / ID',ev('requirements'))}</div></details>
-    <details><summary>Getting paid<span class="consider-summary">${escapeHtml(st('gettingPaid'))}</span></summary><div class="consider-body">${row('Payment methods',ev('gettingPaid'))}${row('Withdrawal',ev('withdrawal'))}${row('Starting cost',ev('realCost'))}</div></details>
-    <details><summary>Earnings<span class="consider-summary">${escapeHtml(st('earnings'))} • ${escapeHtml(st('availability'))}</span></summary><div class="consider-body">${row('Earning potential',ev('earnings'))}${row('Time to first money',ev('availability'))}</div></details>
-    <details><summary>Your fit<span class="consider-summary">${escapeHtml(u.devices.join(', '))} • ${escapeHtml(u.budgetLabel)}</span></summary><div class="consider-body">${row('Devices',u.devices.join(', '))}${row('Budget',u.budgetLabel)}${row('ID',u.ids.join(', '))}${row('Experience',u.experience)}${row('Time',u.time)}${row('Goal',u.goals.join(', '))}</div></details>
-  </div>`;
+  const desktop='<div class="consider-grid">'+
+    '<div class="consider-card"><div class="consider-title">Opportunity</div>'+row('What the work is',claim||ev('opportunity'))+row('Work type',workType)+row('Current availability',ev('availability'))+'</div>'+
+    '<div class="consider-card"><div class="consider-title">Access & requirements</div>'+row('Nigeria access',ev('nigeriaAccess'))+row('Phone / laptop',String((b.requirements&&b.requirements.device)||'No clear device requirement was found.'))+row('KYC / ID',String((b.requirements&&b.requirements.kyc)||'No clear KYC or ID requirement was found.'))+'</div>'+
+    '<div class="consider-card"><div class="consider-title">Getting paid</div>'+row('Payment methods',ev('gettingPaid'))+row('Withdrawal',ev('withdrawal'))+'</div>'+
+    '<div class="consider-card"><div class="consider-title">Earnings</div>'+row('Earning potential',ev('earnings'))+row('Time to first money',String((b.availability&&b.availability.timeToFirstMoney)||'No clear time-to-first-money information was found.'))+'</div>'+
+    '<div class="consider-card"><div class="consider-title">Starting cost</div>'+row('Cash cost',ev('realCost'))+'</div>'+
+    '<div class="consider-card"><div class="consider-title">Your Fit</div>'+row('Devices',u.devices.join(', '))+row('Budget',u.budgetLabel)+row('ID',u.ids.join(', '))+row('Experience',u.experience)+row('Time',u.time)+row('Goal',u.goals.join(', '))+'</div>'+
+  '</div>';
+  const mobile='<div class="consider-mobile">'+
+    '<details><summary>Opportunity<span class="consider-summary">'+escapeHtml(st('opportunity','Needs confirmation'))+'</span></summary><div class="consider-body">'+row('What the work is',claim||ev('opportunity'))+row('Work type',workType)+row('Current availability',ev('availability'))+'</div></details>'+
+    '<details><summary>Access & requirements<span class="consider-summary">'+escapeHtml(st('requirements'))+'</span></summary><div class="consider-body">'+row('Nigeria access',ev('nigeriaAccess'))+row('Phone / laptop',String((b.requirements&&b.requirements.device)||'No clear device requirement was found.'))+row('KYC / ID',String((b.requirements&&b.requirements.kyc)||'No clear KYC or ID requirement was found.'))+'</div></details>'+
+    '<details><summary>Getting paid<span class="consider-summary">'+escapeHtml(st('gettingPaid'))+'</span></summary><div class="consider-body">'+row('Payment methods',ev('gettingPaid'))+row('Withdrawal',ev('withdrawal'))+'</div></details>'+
+    '<details><summary>Earnings<span class="consider-summary">'+escapeHtml(st('earnings'))+'</span></summary><div class="consider-body">'+row('Earning potential',ev('earnings'))+row('Time to first money',String((b.availability&&b.availability.timeToFirstMoney)||'No clear time-to-first-money information was found.'))+'</div></details>'+
+    '<details><summary>Starting cost<span class="consider-summary">'+escapeHtml(st('realCost','Needs confirmation'))+'</span></summary><div class="consider-body">'+row('Cash cost',ev('realCost'))+'</div></details>'+
+    '<details><summary>Your fit<span class="consider-summary">'+escapeHtml(u.devices.join(', '))+' • '+escapeHtml(u.budgetLabel)+'</span></summary><div class="consider-body">'+row('Devices',u.devices.join(', '))+row('Budget',u.budgetLabel)+row('ID',u.ids.join(', '))+row('Experience',u.experience)+row('Time',u.time)+row('Goal',u.goals.join(', '))+'</div></details>'+
+  '</div>';
   return desktop+mobile;
+}
+
+function buildResearchSummary(name,o,r,u){
+  const b=o.researchBreakdown||{};
+  const catchText=cleanResearchText(
+    (r.blockers&&r.blockers[0]) ||
+    (b.biggestCatch&&b.biggestCatch.evidence) ||
+    (r.unknowns&&r.unknowns[0]) ||
+    (r.cautions&&r.cautions[0]) ||
+    'The main conditions still need to be confirmed.',
+    300
+  );
+  if(r.verdict==='TRY') return 'This is a real route you can explore, but it is not the same as instant income. '+catchText;
+  if(r.verdict==='MAYBE') return 'There is a possible route here, but you should understand the conditions before committing serious time or money. '+catchText;
+  if(r.verdict==='SKIP') return 'The opportunity may exist, but something important does not fit your current situation. '+catchText;
+  return 'We found some information, but not enough opportunity-specific evidence to tell you to start. More reliable evidence is needed before you commit time, money or documents.';
 }
 function showResult(name,o,u,r,known,mode='known'){
   const icon=r.verdict==='TRY'?'🟢':r.verdict==='MAYBE'?'🟡':r.verdict==='SKIP'?'🔴':'⚪';
@@ -378,12 +396,13 @@ function showResult(name,o,u,r,known,mode='known'){
   const blockers=r.blockers||[],fits=r.fits||[],unknowns=r.unknowns||[],changes=r.changes||[];
   const match=(blockers.length?'<h3>❌ Does not fit / blockers</h3><ul>'+blockers.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+(fits.length?'<h3>✅ Fits your situation</h3><ul>'+fits.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+(unknowns.length?'<h3>⚠️ Uncertain</h3><ul>'+unknowns.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'');
   const catches=(known||live)?`<div class="notice"><b>⚠️ Biggest catch</b><p class="muted">${escapeHtml(o.catch||'Review the highlighted conditions, uncertainties and trade-offs before committing serious time.')}</p></div>`:'';
+  const summary=live?`<div class="notice" style="border-width:2px"><b>What am I about to get into?</b><p class="muted">${escapeHtml(buildResearchSummary(name,o,r,u))}</p></div>`:'';
   const why=`<div class="notice"><b>Why this verdict?</b><p class="muted">${escapeHtml(r.reason)}</p></div>`;
   const categories=(known||live)?`<div class="card" style="margin-top:16px"><h3>Three checks</h3>${row('Legitimacy',live?((o.researchBreakdown&&o.researchBreakdown.legitimacy&&o.researchBreakdown.legitimacy.evidence)||'Evidence-based; not a guarantee'):'Evidence-based; not a guarantee')}${row('Accessibility',o.nigeria||'See current evidence')}${row('Worthwhile',o.economics||'See current evidence')}</div>`:'';
   const cost=(known||live)?`<div class="card" style="margin-top:16px"><h3>💰 Real cost</h3>${realCost}</div>`:'';
   const change=`<div class="notice"><b>What would change this verdict?</b><p class="muted">${escapeHtml(changes[0]||'Resolve the highlighted uncertainties and reassess.')}</p></div>`;
   const pill=live?'Live Research':known?'Known V1 opportunity':'Unknown opportunity';
-  $('resultCard').innerHTML=`<span class="pill">${pill}</span><h2>${escapeHtml(name)}</h2><div class="verdict">${icon} ${escapeHtml(r.verdict)}</div>${why}${catches}${match}${change}<div class="card" style="margin-top:16px"><h3>What we considered</h3>${details}</div>${categories}${cost}`;
+  $('resultCard').innerHTML=`<span class="pill">${pill}</span><h2>${escapeHtml(name)}</h2><div class="verdict">${icon} ${escapeHtml(r.verdict)}</div>${summary}${why}${catches}${match}${change}<div class="card" style="margin-top:16px"><h3>What we considered</h3>${details}</div>${categories}${cost}`;
   $('nextText').textContent=r.verdict==='TRY'?'Start carefully. Confirm the exact current requirements and payment terms before investing serious time.':r.verdict==='MAYBE'?'Resolve the highlighted conditions first. Do not commit serious time or money until the uncertain points are clear.':r.verdict==='SKIP'?'Do not spend more time or money on this route right now. Look for a better-fit opportunity.':'We need better evidence before a responsible recommendation is possible. Do not pay or submit sensitive documents yet.';
   go('result')
 }
