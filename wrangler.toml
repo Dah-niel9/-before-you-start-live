@@ -1,5 +1,5 @@
 name = "before-you-start"
-main = "src/index.js"
+main = "worker-live.js"
 compatibility_date = "2026-09-15"
 
 [assets]
