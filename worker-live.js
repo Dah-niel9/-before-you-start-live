@@ -665,12 +665,16 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   const cautions = Array.isArray(assessment.cautions) ? assessment.cautions : [];
   const unknowns = Array.isArray(assessment.unknowns) ? assessment.unknowns : [];
 
+  const specificCatch = findEvidence([
+    { pattern: /\b(?:threshold|qualification|eligible|requires?|must have|identity verification|kyc|review process|waitlist|invite[- ]only|limited|project-dependent|availability)\b/i, weight: 12 },
+    { pattern: /\b(?:not guaranteed|earnings? vary|income varies|depends on|takes time|not immediate|not instant)\b/i, weight: 10 },
+    { pattern: /\b(?:fee|fees|commission|deposit|subscription|upfront cost)\b/i, weight: 9 }
+  ]);
   const strongestCatch = blockers[0]
-    || cautions[0]
+    || specificCatch
     || unknowns[0]
-    || findEvidence([
-      { pattern: /\b(?:not guaranteed|depends|var(?:y|ies)|project-dependent|limited|competition|qualification|kyc|identity verification|fee|commission|threshold|review process)\b/i, weight: 10 }
-    ]);
+    || cautions[0]
+    || "No specific major catch was identified in the available opportunity-specific evidence.";
 
   return {
     opportunity: {
