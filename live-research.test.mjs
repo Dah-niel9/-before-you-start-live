@@ -382,3 +382,53 @@ test("category findings can come from sentences inside a trusted opportunity sou
   assert.match(result.researchBreakdown.withdrawal.evidence, /payment threshold/i);
   assert.match(result.researchBreakdown.earnings.evidence, /Earnings vary|earnings/i);
 });
+
+
+test("live research does not mistake incidental paid language for a payment method", () => {
+  const result = assessLiveEvidence({
+    name: "YouTube Content-Creation",
+    claim: "Create and publish videos for potential monetization",
+    answer: "YouTube information was found.",
+    profile: {},
+    sources: [
+      source("YouTube creator story", "https://example.com/youtube-story", "Inside this episode: the creator discusses multiple income streams and how they turned a side passion into a powerful brand. The video is paid promotion."),
+      source("YouTube official", "https://www.youtube.com/", "YouTube is an established platform with official creator documentation.")
+    ]
+  });
+  assert.equal(result.researchBreakdown.gettingPaid.status, "Needs confirmation", JSON.stringify(result.researchBreakdown, null, 2));
+});
+
+test("live research does not mistake device mentions for starting cost", () => {
+  const result = assessLiveEvidence({
+    name: "YouTube Content-Creation",
+    claim: "Create and publish videos for potential monetization",
+    answer: "YouTube information was found.",
+    profile: {},
+    sources: [
+      source("YouTube Studio help", "https://support.google.com/youtube/", "YouTube Studio can be accessed on a phone, tablet, or computer."),
+      source("YouTube official", "https://www.youtube.com/", "YouTube is an established platform with official creator documentation.")
+    ]
+  });
+  assert.equal(result.researchBreakdown.realCost.status, "No clear upfront cost found", JSON.stringify(result.researchBreakdown, null, 2));
+});
+
+test("live research does not turn a generic review duration into time to first money", () => {
+  const result = assessLiveEvidence({
+    name: "YouTube Content-Creation",
+    claim: "Create and publish videos for potential monetization",
+    answer: "YouTube information was found.",
+    profile: {},
+    sources: [
+      source("YouTube review", "https://support.google.com/youtube/", "The review process typically takes about a month, but delays are possible."),
+      source("YouTube official", "https://www.youtube.com/", "YouTube is an established platform with official creator documentation.")
+    ]
+  });
+  assert.equal(result.researchBreakdown.availability.timeToFirstMoney, "No clear time-to-first-money information was found.", JSON.stringify(result.researchBreakdown, null, 2));
+});
+
+test("live result has the plain-English summary above the research boxes", () => {
+  const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
+  assert.match(html, /What am I about to get into/);
+  assert.match(html, /buildResearchSummary/);
+  assert.match(html, /\$\{summary\}\$\{why\}/);
+});
