@@ -589,10 +589,10 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   };
 
   const workEvidence = findEvidence([
-    { pattern: /\b(?:does|do|work|works|working|create|creates|creating|produce|produces|publish|publishes|upload|uploads|complete|completes|perform|provides?)\b/i, weight: 4 },
-    { pattern: /\b(?:tasks?|projects?|videos?|content|surveys?|services?|lessons?|classes|designs?|articles?|data|microtasks?)\b/i, weight: 5 },
-    { pattern: /\b(?:users?|workers?|creators?|contributors?|freelancers?)\s+(?:can|may|are able to)\b/i, weight: 3 }
-  ], { requireDirect: true });
+    { pattern: /\b(?:users?|workers?|creators?|contributors?|freelancers?)\s+(?:can|may|are able to)\s+(?:create|produce|publish|upload|complete|perform|provide)\b[^.]{0,140}\b(?:videos?|content|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|articles?|data|microtasks?)\b/i, weight: 16 },
+    { pattern: /\b(?:the work|the job|the role|this opportunity|creators?)\s+(?:involves?|requires?|means?)\b[^.]{0,180}\b(?:create|creating|produce|producing|publish|publishing|upload|uploading|complete|completing|perform|providing)\b[^.]{0,120}\b(?:videos?|content|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|articles?|data|microtasks?)\b/i, weight: 16 },
+    { pattern: /\b(?:create|creating|produce|producing|publish|publishing|upload|uploading)\s+(?:and\s+)?(?:publish\s+)?(?:videos?|content|articles?)\b/i, weight: 13 }
+  ], { requireDirect: true, exclude: [/\b(?:camera|microphone|equipment|editing software|do not need|don't need|not need)\b/i] });
 
   const workTypeEvidence = findEvidence([
     { pattern: /\b(?:microtasks?|micro[- ]tasks?)\b/i, weight: 12 },
@@ -603,7 +603,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     { pattern: /\b(?:affiliate marketing|affiliate)\b/i, weight: 12 },
     { pattern: /\b(?:data entry|data annotation|ai data|data collection)\b/i, weight: 12 },
     { pattern: /\b(?:translation|transcription)\b/i, weight: 12 }
-  ], { requireDirect: true });
+  ], { requireDirect: true, exclude: [/\b(?:jobs?|job listings?|indeed|hiring|vacancies?)\b/i] });
 
   const legitimacyEvidence = findEvidence([
     { pattern: /\b(?:official (?:site|website|support|documentation)|terms of service|privacy policy|help center|support center)\b/i, weight: 7 },
@@ -640,7 +640,8 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   ], { requireDirect: true, rejectUnsupported: true });
 
   const withdrawalEvidence = findEvidence([
-    { pattern: /\b(?:minimum withdrawal|withdrawal threshold|minimum payout|payout threshold|payment threshold)\b[^.]{0,120}(?:\$|€|£|₦|ngn|usd|eur|gbp)?\s?[\d,]+/i, weight: 18 },
+    { pattern: /\bpayment thresholds?\b/i, weight: 20 },
+    { pattern: /\b(?:minimum withdrawal|withdrawal threshold|minimum payout|payout threshold)\b[^.]{0,120}(?:\$|€|£|₦|ngn|usd|eur|gbp)?\s?[\d,]+/i, weight: 18 },
     { pattern: /\b(?:withdraw(?:al)?|payout|payment)\b[^.]{0,120}\b(?:threshold|minimum|limit)\b/i, weight: 15 },
     { pattern: /\b(?:withdraw(?:al)?|payout)\b[^.]{0,120}\b(?:weekly|monthly|daily|schedule|processing|processed)\b/i, weight: 13 },
     { pattern: /\b(?:once|after|when)\b[^.]{0,100}\b(?:reach|meet)\b[^.]{0,80}\b(?:threshold|minimum payout|payment threshold)\b/i, weight: 14 }
