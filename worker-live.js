@@ -526,208 +526,191 @@ function getOpportunityAliases(name, claim = "", url = "") {
 
 export function buildResearchBreakdown({ name, claim, sources = [], profile = {}, assessment = {} }) {
   const normalizedName = String(name || "").trim();
-  const relevantSources = Array.isArray(sources) ? sources : [];
   const aliases = getOpportunityAliases(normalizedName, claim);
-  const opportunityAnchors = aliases
-    .map(alias => String(alias || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim())
-    .filter(Boolean);
+  const aliasTokens = aliases.map(alias => String(alias || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()).filter(Boolean);
 
-  const sentences = relevantSources.flatMap(source => {
+  const genericNoise = /^(?:final thoughts?|conclusion|introduction|overview|table of contents|related articles?|read more|sign up|log in|home|pricing|contact us|about us|sources?|references?)$/i;
+  const boilerplate = /(?:make money online|ways to make money|best ways to earn|top platforms|how to make money online|related articles?|read more|final thoughts?|in conclusion|sign up now|learn more|click here)/i;
+
+  const normalizeSentence = value => String(value || "")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/\[[^\]]+\]\([^)]+\)/g, "")
+    .replace(/^#{1,6}\s*/g, "")
+    .replace(/^\s*(?:[-•*]\s*)+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const sourceItems = (Array.isArray(sources) ? sources : []).flatMap(source => {
+    const title = normalizeSentence(source.title || "");
+    const url = String(source.url || "");
     const raw = String(source.content || "").replace(/\s+/g, " ").trim();
-    const sourceIdentityText = String(source.title || "") + " " + String(source.url || "") + " " + raw;
-    const lowerSource = sourceIdentityText.toLowerCase();
-    const sourceSpecific = opportunityAnchors.some(anchor =>
-      lowerSource.includes(anchor) ||
-      lowerSource.replace(/[^a-z0-9]/g, "").includes(anchor.replace(/[^a-z0-9]/g, ""))
+    if (!raw) return [];
+    let host = "";
+    try { host = new URL(url).hostname.toLowerCase().replace(/^www\./, ""); } catch {}
+    const sourceIdentity = (title + " " + url + " " + raw).toLowerCase();
+    const sourceMatches = aliasTokens.some(alias =>
+      sourceIdentity.includes(alias) ||
+      sourceIdentity.replace(/[^a-z0-9]/g, "").includes(alias.replace(/[^a-z0-9]/g, ""))
     );
-    return raw
-      .split(/(?<=[.!?])\s+/)
-      .map(text => ({ text: text.trim(), title: source.title || "", url: source.url || "", sourceSpecific }))
-      .filter(item => item.text.length >= 20);
+    return raw.split(/(?<=[.!?])\s+/)
+      .map(text => normalizeSentence(text))
+      .filter(text => text.length >= 24)
+      .filter(text => !genericNoise.test(text))
+      .map(text => ({
+        text,
+        title,
+        url,
+        host,
+        sourceMatches,
+        search: (title + " " + text).toLowerCase()
+      }));
   });
 
-  const isOpportunitySpecific = item => {
-    if (item.sourceSpecific) return true;
-    const lower = item.text.toLowerCase();
-    if (opportunityAnchors.some(anchor => lower.includes(anchor))) return true;
-    try {
-      const compactHost = new URL(item.url).hostname.toLowerCase().replace(/[^a-z0-9]/g, "");
-      return opportunityAnchors.some(anchor => compactHost.includes(anchor.replace(/[^a-z0-9]/g, "")));
-    } catch {
-      return false;
-    }
-  };
-
-  const candidates = sentences.filter(isOpportunitySpecific);
-  const cleanSentence = text => String(text || "")
-    .replace(/^[-•*]\s*/, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 260);
-
-  const methodology = /(?:related articles|how to make money|ways to earn|best platforms|top platforms|make money online|current web research|sources were checked|sources were found|sources checked)/i;
+  const isUnsupported = text => /(?:does not establish|doesn't establish|does not prove|doesn't prove|not evidence|not proof|not supported|unsupported|not available|unavailable|not eligible|not accepted|not offered|not provided)\b/i.test(text);
+  const candidates = sourceItems.filter(item =>
+    !boilerplate.test(item.text) &&
+    (item.sourceMatches || aliasTokens.some(alias => item.text.toLowerCase().includes(alias)))
+  );
 
   const findEvidence = (rules, options = {}) => {
     let best = null;
     for (const item of candidates) {
-      const searchable = options.includeTitle
-        ? String(item.title) + " " + item.text
-        : item.text;
-      if (methodology.test(searchable)) continue;
-      let score = 0;
-      for (const rule of rules) {
-        if (rule.pattern.test(searchable)) score += rule.weight;
-      }
+      const searchable = options.includeTitle ? (item.title + " " + item.text) : item.text;
+      if (boilerplate.test(searchable)) continue;
+      if (options.exclude?.some(pattern => pattern.test(searchable))) continue;
+      if (options.rejectUnsupported && isUnsupported(searchable)) continue;
+      let score = item.sourceMatches ? 2 : 0;
+      for (const rule of rules) if (rule.pattern.test(searchable)) score += rule.weight;
+      if (options.requireDirect && score < (options.minimumScore || 8)) continue;
       if (!score) continue;
-      if (options.exclude && options.exclude.some(pattern => pattern.test(searchable))) continue;
       if (!best || score > best.score) best = { item, score };
     }
-    return best ? cleanSentence(best.item.text) : "";
+    return best ? best.item.text.slice(0, 320) : "";
   };
 
-  const claimText = String(claim || "").trim();
+  const workEvidence = findEvidence([
+    { pattern: /\b(?:does|do|work|works|working|create|creates|creating|produce|produces|publish|publishes|upload|uploads|complete|completes|perform|provides?)\b/i, weight: 4 },
+    { pattern: /\b(?:tasks?|projects?|videos?|content|surveys?|services?|lessons?|classes|designs?|articles?|data|microtasks?)\b/i, weight: 5 },
+    { pattern: /\b(?:users?|workers?|creators?|contributors?|freelancers?)\s+(?:can|may|are able to)\b/i, weight: 3 }
+  ], { requireDirect: true });
 
   const workTypeEvidence = findEvidence([
-    { pattern: /\b(?:create|creating|creator|content|video|videos|channel|publish|upload|tasks?|projects?|services?)\b/i, weight: 5 },
-    { pattern: /\b(?:work|job|role|project|task|service)\b/i, weight: 2 }
-  ]);
+    { pattern: /\b(?:microtasks?|micro[- ]tasks?)\b/i, weight: 9 },
+    { pattern: /\b(?:freelanc(?:e|ing|er)|gig work)\b/i, weight: 9 },
+    { pattern: /\b(?:content creation|content creator|video creation|creator)\b/i, weight: 9 },
+    { pattern: /\b(?:survey(?:s)?|paid surveys)\b/i, weight: 9 },
+    { pattern: /\b(?:tutor(?:ing)?|teaching)\b/i, weight: 9 },
+    { pattern: /\b(?:affiliate marketing|affiliate)\b/i, weight: 9 },
+    { pattern: /\b(?:data entry|data annotation|ai data|data collection)\b/i, weight: 9 },
+    { pattern: /\b(?:translation|transcription)\b/i, weight: 9 }
+  ], { requireDirect: true });
 
   const legitimacyEvidence = findEvidence([
-    { pattern: /\b(?:legitimate|legit|established|reputable|registered company|founded in)\b/i, weight: 5 },
-    { pattern: /\b(?:official (?:site|website|support|documentation)|terms of service|privacy policy|help center|support center)\b/i, weight: 4 }
-  ]);
+    { pattern: /\b(?:official (?:site|website|support|documentation)|terms of service|privacy policy|help center|support center)\b/i, weight: 7 },
+    { pattern: /\b(?:established|registered|reputable|operating since|founded in|official company|official platform)\b/i, weight: 7 },
+    { pattern: /\b(?:verified|legitimate|legit)\b/i, weight: 6 }
+  ], { includeTitle: true, requireDirect: true, rejectUnsupported: true });
 
   const nigeriaEvidence = findEvidence([
-    { pattern: /\b(?:nigeria|nigerian)\b[^.]{0,180}\b(?:supported|available|eligible|accepts|accepted|open to|can participate|allowed|rolled out)\b/i, weight: 12 },
-    { pattern: /\b(?:supported|available|eligible|accepts|accepted|open to|can participate|allowed|rolled out)\b[^.]{0,180}\b(?:nigeria|nigerian)\b/i, weight: 12 },
-    { pattern: /\b(?:country|region)\b[^.]{0,100}\b(?:available|eligible|supported)\b/i, weight: 8 }
-  ], { includeTitle: true });
-
-  const requirementsEvidence = findEvidence([
-    { pattern: /\b(?:\d[\d,]*|five|six|seven|eight|nine|ten|hundred|thousand)\s*(?:subscribers?|followers?|uploads?|views?|watch hours?|hours?)\b/i, weight: 14 },
-    { pattern: /\b(?:identity verification|kyc|id verification|proof of identity|government[- ]issued id|two[- ]step verification|2[- ]step verification|advanced features|qualification|application|invite[- ]only)\b/i, weight: 12 },
-    { pattern: /\b(?:requires?|must have|needs?|only works on|available only on)\b[^.]{0,120}\b(?:laptop|computer|desktop|smartphone|android|iphone|mobile phone|phone)\b/i, weight: 11 },
-    { pattern: /\b(?:requires?|must have|needs?|experience in)\b[^.]{0,100}\b(?:experience|skill|skills)\b/i, weight: 10 }
-  ]);
+    { pattern: /\b(?:nigeria|nigerian)\b[^.]{0,180}\b(?:supported|available|eligible|accepts|accepted|open to|can participate|allowed|launched|rolled out)\b/i, weight: 12 },
+    { pattern: /\b(?:supported|available|eligible|accepts|accepted|open to|can participate|allowed|launched|rolled out)\b[^.]{0,180}\b(?:nigeria|nigerian)\b/i, weight: 12 },
+    { pattern: /\b(?:nigeria|nigerian)\b[^.]{0,160}\b(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)\b/i, weight: 12 }
+  ], { includeTitle: true, requireDirect: true });
 
   const deviceEvidence = findEvidence([
-    { pattern: /\b(?:requires?|must have|need(?:s)?|only works on|available only on|access(?:ible)? (?:from|on))\b[^.]{0,120}\b(?:laptop|computer|desktop|smartphone|android|iphone|mobile phone|phone|tablet)\b/i, weight: 14 }
-  ]);
+    { pattern: /\b(?:requires?|must have|need(?:s)?|only works on|available only on|access(?:ible)? (?:from|on))\b[^.]{0,120}\b(?:laptop|computer|desktop|smartphone|android|iphone|mobile phone|phone|tablet)\b/i, weight: 14 },
+    { pattern: /\b(?:laptop|computer|desktop|smartphone|android|iphone|mobile phone|phone|tablet)\b[^.]{0,100}\b(?:required|necessary|needed|supported)\b/i, weight: 12 }
+  ], { requireDirect: true });
 
   const kycEvidence = findEvidence([
     { pattern: /\b(?:kyc|identity verification|id verification|proof of identity|government[- ]issued id|nin|passport|driver'?s licence|driver'?s license|voter'?s card)\b/i, weight: 12 },
-    { pattern: /\b(?:verify|verification)\b[^.]{0,100}\b(?:identity|personal information|account|channel|payment|address|user)\b/i, weight: 8 },
+    { pattern: /\b(?:verify|verification)\b[^.]{0,100}\b(?:identity|personal information|account|payment|address|user)\b/i, weight: 9 },
     { pattern: /\b(?:tax information|tax info)\b/i, weight: 6 }
-  ]);
+  ], { requireDirect: true });
 
-  const timeToMoneyEvidence = findEvidence([
-    { pattern: /\b(?:first payment|first payout|first money|when (?:will|do) i get paid|when .* get paid|payment timeline|payment cycle)\b/i, weight: 15 },
-    { pattern: /\b(?:payment|payout)\b[^.]{0,120}\b(?:monthly|weekly|days?|weeks?|end of (?:the )?month|next month|processing period)\b/i, weight: 12 },
-    { pattern: /\b(?:once|after|when)\b[^.]{0,100}\b(?:reach|meet)\b[^.]{0,80}\b(?:payment threshold|payout threshold|eligibility threshold)\b/i, weight: 11 },
-    { pattern: /\b(?:not immediate|not instant|takes time|long game|build an audience|reach the threshold)\b/i, weight: 9 }
-  ]);
-
-  const startingCostEvidence = findEvidence([
-    { pattern: /\b(?:starting cost|cost to start|upfront cost|registration fee|joining fee|subscription fee|entry fee|deposit|investment required)\b/i, weight: 14 },
-    { pattern: /\b(?:fee|fees|commission|deposit|subscription|price|costs?)\b[^.]{0,100}(?:₦|ngn|naira|\$|usd|free)\b/i, weight: 12 },
-    { pattern: /(?:₦|ngn|naira|\$|usd)\s?[\d,]+/i, weight: 10 },
-    { pattern: /\b(?:free to join|free to start|no upfront cost|no registration fee)\b/i, weight: 14 }
-  ]);
-
-  const gettingPaidEvidence = findEvidence([
-    { pattern: /\b(?:get paid|getting paid|receive payment|receive payments|payment method|payment methods|form of payment|how to get paid)\b/i, weight: 14 },
-    { pattern: /\b(?:paid|payment|payout)\b[^.]{0,160}\b(?:through|via|using|method|option|bank|paypal|payoneer|paystack|flutterwave|adsense|wire transfer|electronic funds transfer|eft)\b/i, weight: 13 },
-    { pattern: /\b(?:adsense for youtube|google adsense|adsense)\b/i, weight: 11 }
-  ]);
+  const paymentEvidence = findEvidence([
+    { pattern: /\b(?:payment method|payment methods|payout method|payout methods|ways to get paid|how to get paid|form of payment)\b[^.]{0,160}\b(?:paypal|payoneer|bank|paystack|flutterwave|wise|wire transfer|transfer|adsense|direct deposit|electronic funds transfer|eft)\b/i, weight: 16 },
+    { pattern: /\b(?:paid|payments?|payouts?)\b[^.]{0,120}\b(?:through|via|using|by)\b[^.]{0,80}\b(?:paypal|payoneer|bank|paystack|flutterwave|wise|wire transfer|transfer|adsense|direct deposit|eft)\b/i, weight: 16 },
+    { pattern: /\b(?:paypal|payoneer|paystack|flutterwave|wise|adsense)\b[^.]{0,100}\b(?:payment|payout|paid|receive)\b/i, weight: 14 }
+  ], { requireDirect: true, rejectUnsupported: true });
 
   const withdrawalEvidence = findEvidence([
-    { pattern: /\b(?:payment|payout|withdrawal|withdraw)\b[^.]{0,120}\b(?:threshold|minimum|schedule|weekly|monthly|limit)\b/i, weight: 15 },
-    { pattern: /\b(?:minimum payout|payout threshold|payment threshold|withdrawal threshold)\b/i, weight: 15 },
-    { pattern: /\bthresholds?\b/i, weight: 12 }
-  ]);
+    { pattern: /\b(?:minimum withdrawal|withdrawal threshold|minimum payout|payout threshold|payment threshold)\b[^.]{0,120}(?:\$|€|£|₦|ngn|usd|eur|gbp)?\s?[\d,]+/i, weight: 18 },
+    { pattern: /\b(?:withdraw(?:al)?|payout|payment)\b[^.]{0,120}\b(?:threshold|minimum|limit)\b/i, weight: 15 },
+    { pattern: /\b(?:withdraw(?:al)?|payout)\b[^.]{0,120}\b(?:weekly|monthly|daily|schedule|processing|processed)\b/i, weight: 13 },
+    { pattern: /\b(?:once|after|when)\b[^.]{0,100}\b(?:reach|meet)\b[^.]{0,80}\b(?:threshold|minimum payout|payment threshold)\b/i, weight: 14 }
+  ], { requireDirect: true, rejectUnsupported: true });
+
+  const startingCostEvidence = findEvidence([
+    { pattern: /\b(?:free to (?:join|register|start)|no (?:upfront|registration|joining) fee|no upfront cost)\b/i, weight: 18 },
+    { pattern: /\b(?:starting cost|cost to start|upfront cost|registration fee|joining fee|entry fee|subscription fee|deposit|investment required)\b/i, weight: 17 },
+    { pattern: /\b(?:requires?|costs?|fee|fees|deposit|subscription)\b[^.]{0,100}(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s?[\d,]+/i, weight: 16 }
+  ], { requireDirect: true, rejectUnsupported: true });
 
   const earningsEvidence = findEvidence([
-    { pattern: /\b(?:earnings?|income|revenue|rpm|cpm|rate|hourly|per task|per project)\b/i, weight: 11 },
-    { pattern: /\b(?:earnings?|income)\b[^.]{0,140}\b(?:vary|varies|depends|not guaranteed)\b/i, weight: 13 },
-    { pattern: /\b(?:not guaranteed|var(?:y|ies)|depends on)\b/i, weight: 8 }
-  ]);
+    { pattern: /\b(?:earnings?|income|revenue)\b[^.]{0,160}\b(?:\$|€|£|₦|ngn|usd|per hour|per task|per project|per video|per view|rate|range|var(?:y|ies)|depends|not guaranteed)\b/i, weight: 16 },
+    { pattern: /\b(?:\$|€|£|₦|ngn|usd)\s?[\d,]+(?:\s?(?:per|\/)\s?(?:hour|task|project|video|view|month|day))?\b/i, weight: 12 },
+    { pattern: /\b(?:pay|pays|paid)\b[^.]{0,120}\b(?:per task|per project|per hour|per video|per view|commission|rate)\b/i, weight: 13 },
+    { pattern: /\b(?:earnings?|income)\b[^.]{0,140}\b(?:vary|varies|depends on|not guaranteed|fluctuate)\b/i, weight: 14 }
+  ], { requireDirect: true, rejectUnsupported: true });
+
+  const timeToMoneyEvidence = findEvidence([
+    { pattern: /\b(?:first payment|first payout|first money|first earnings?|when (?:will|do) .* get paid|when .* receive payment|payment timeline|payout timeline|payment cycle)\b/i, weight: 18 },
+    { pattern: /\b(?:payment|payout)\b[^.]{0,140}\b(?:within|after|every|each|weekly|monthly|daily|\d+\s*(?:day|days|week|weeks|month|months))\b/i, weight: 16 },
+    { pattern: /\b(?:payment|payout)\b[^.]{0,100}\b(?:processing|processed)\b[^.]{0,80}\b(?:day|days|week|weeks)\b/i, weight: 14 },
+    { pattern: /\b(?:not immediate|not instant|takes \d+ (?:days?|weeks?|months?)|paid after)\b/i, weight: 12 }
+  ], { requireDirect: true, rejectUnsupported: true });
 
   const availabilityEvidence = findEvidence([
-    { pattern: /\b(?:current|ongoing|active)\b[^.]{0,100}\b(?:project|task|work|opportunities?)\b/i, weight: 11 },
-    { pattern: /\b(?:project|task|work|opportunities?)\b[^.]{0,100}\b(?:available|availability|varies|limited|depends)\b/i, weight: 10 },
-    { pattern: /\b(?:waitlist|invite[- ]only|limited slots?)\b/i, weight: 10 },
-    { pattern: /\b(?:available|availability|eligible)\b/i, weight: 4 }
-  ]);
+    { pattern: /\b(?:current|currently|ongoing|active)\b[^.]{0,100}\b(?:projects?|tasks?|work|opportunities?|gigs?)\b[^.]{0,80}\b(?:available|open|active)\b/i, weight: 16 },
+    { pattern: /\b(?:projects?|tasks?|work|opportunities?|gigs?)\b[^.]{0,100}\b(?:currently|now|available|availability|open|active)\b/i, weight: 15 },
+    { pattern: /\b(?:waitlist|invite[- ]only|limited slots?|no longer accepting|applications? (?:open|closed))\b/i, weight: 15 }
+  ], { includeTitle: true, requireDirect: true, rejectUnsupported: true });
 
-  const realCostEvidence = startingCostEvidence;
+  const specificCatch = findEvidence([
+    { pattern: /\b(?:not guaranteed|not available to everyone|limited|invite[- ]only|waitlist|project[- ]dependent|qualification|requires?|must have|minimum|threshold|competition|competitive)\b/i, weight: 9 },
+    { pattern: /\b(?:earnings?|income)\b[^.]{0,140}\b(?:vary|varies|depends|not guaranteed)\b/i, weight: 11 },
+    { pattern: /\b(?:fee|fees|commission|deposit|subscription|upfront cost)\b/i, weight: 8 }
+  ], { requireDirect: true, rejectUnsupported: true });
 
   const blockers = Array.isArray(assessment.blockers) ? assessment.blockers : [];
   const cautions = Array.isArray(assessment.cautions) ? assessment.cautions : [];
   const unknowns = Array.isArray(assessment.unknowns) ? assessment.unknowns : [];
+  const noEvidence = value => value || "No clear evidence found.";
 
-  const specificCatch = findEvidence([
-    { pattern: /\b(?:threshold|qualification|eligible|requires?|must have|identity verification|kyc|review process|waitlist|invite[- ]only|limited|project-dependent|availability)\b/i, weight: 12 },
-    { pattern: /\b(?:not guaranteed|earnings? vary|income varies|depends on|takes time|not immediate|not instant)\b/i, weight: 10 },
-    { pattern: /\b(?:fee|fees|commission|deposit|subscription|upfront cost)\b/i, weight: 9 }
-  ]);
-  const strongestCatch = blockers[0]
-    || specificCatch
-    || unknowns[0]
-    || cautions[0]
-    || "No specific major catch was identified in the available opportunity-specific evidence.";
+  const workType = workTypeEvidence ||
+    (/\b(?:youtube|video|content creation|creator)\b/i.test(normalizedName + " " + claim) ? "Content creation" :
+    /\b(?:microtask|micro task)\b/i.test(normalizedName + " " + claim) ? "Microtasks" :
+    /\b(?:survey)\b/i.test(normalizedName + " " + claim) ? "Surveys" :
+    /\b(?:affiliate)\b/i.test(normalizedName + " " + claim) ? "Affiliate marketing" :
+    "No clear evidence found.");
+
+  const deal = workEvidence || claim || "No clear evidence found.";
+  const catchEvidence = blockers[0] || specificCatch || cautions[0] || unknowns[0] || "No clear evidence found.";
 
   return {
-    opportunity: {
-      status: claimText || workTypeEvidence ? "Evidence found" : "Not clearly stated",
-      evidence: claimText || workTypeEvidence || "The current evidence does not clearly describe the work.",
-      workType: claimText || workTypeEvidence || (/youtube/i.test(normalizedName)
-        ? "Create and publish content on YouTube."
-        : "Not clearly stated")
-    },
-    legitimacy: {
-      status: legitimacyEvidence ? "Evidence found" : "Not clearly established",
-      evidence: legitimacyEvidence || "No clear opportunity-specific legitimacy evidence was found."
-    },
-    nigeriaAccess: {
-      status: nigeriaEvidence ? "Evidence found" : "Needs confirmation",
-      evidence: nigeriaEvidence || "No clear current Nigeria-access evidence was found."
-    },
+    opportunity: { status: workEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(deal), workType },
+    legitimacy: { status: legitimacyEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(legitimacyEvidence) },
+    nigeriaAccess: { status: nigeriaEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(nigeriaEvidence) },
     requirements: {
-      status: requirementsEvidence ? "Conditions found" : "Not clearly stated",
-      evidence: requirementsEvidence || "No clear device, ID or qualification requirement was found.",
-      device: deviceEvidence || "No clear device requirement was found.",
-      kyc: kycEvidence || "No clear KYC or ID requirement was found."
+      status: (deviceEvidence || kycEvidence) ? "Evidence found" : "No clear evidence found",
+      evidence: noEvidence([deviceEvidence, kycEvidence].filter(Boolean).join(" ")),
+      device: noEvidence(deviceEvidence),
+      kyc: noEvidence(kycEvidence)
     },
-    gettingPaid: {
-      status: gettingPaidEvidence ? "Payment evidence found" : "Needs confirmation",
-      evidence: gettingPaidEvidence || "No clear current payment method was found."
-    },
-    withdrawal: {
-      status: withdrawalEvidence ? "Withdrawal evidence found" : "Needs confirmation",
-      evidence: withdrawalEvidence || "No clear current withdrawal condition was found."
-    },
-    earnings: {
-      status: earningsEvidence ? "Earnings evidence found" : "Not clearly stated",
-      evidence: earningsEvidence || "No clear current earnings information was found."
-    },
-    availability: {
-      status: availabilityEvidence ? "Current/conditional evidence found" : "Needs confirmation",
-      evidence: availabilityEvidence || "No clear current availability information was found.",
-      timeToFirstMoney: timeToMoneyEvidence || "No clear time-to-first-money information was found."
-    },
-    realCost: {
-      status: realCostEvidence ? "Cost evidence found" : "No clear upfront cost found",
-      evidence: realCostEvidence || "No clear upfront cash cost was found in the available evidence."
-    },
+    gettingPaid: { status: paymentEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(paymentEvidence) },
+    withdrawal: { status: withdrawalEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(withdrawalEvidence) },
+    earnings: { status: earningsEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(earningsEvidence) },
+    availability: { status: availabilityEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(availabilityEvidence), timeToFirstMoney: noEvidence(timeToMoneyEvidence) },
+    realCost: { status: startingCostEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(startingCostEvidence) },
     yourFit: {
       status: "Profile considered",
-      evidence: [profile?.devices?.join(", "), profile?.budgetLabel, profile?.experience, profile?.time, Array.isArray(profile?.goals) ? profile.goals.join(", ") : ""]
-        .filter(Boolean).join(" • ")
-        || "Your submitted profile is considered when the evidence contains a clear requirement."
+      evidence: [profile?.devices?.join(", "), profile?.budgetLabel, profile?.experience, profile?.time, Array.isArray(profile?.goals) ? profile.goals.join(", ") : ""].filter(Boolean).join(" • ") ||
+        "Your submitted profile is considered when the evidence contains a clear requirement."
     },
     biggestCatch: {
-      status: strongestCatch ? "Evidence-based" : "No major catch clearly established",
-      evidence: strongestCatch || "No specific major catch was identified in the available opportunity-specific evidence."
+      status: (specificCatch || blockers.length || cautions.length) ? "Evidence-based" : "No clear evidence found",
+      evidence: catchEvidence
     }
   };
 }
