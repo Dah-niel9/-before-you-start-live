@@ -426,9 +426,38 @@ test("live research does not turn a generic review duration into time to first m
   assert.equal(result.researchBreakdown.availability.timeToFirstMoney, "No clear time-to-first-money information was found.", JSON.stringify(result.researchBreakdown, null, 2));
 });
 
-test("live result has the plain-English summary above the research boxes", () => {
+test("live result uses the locked V1 order and Here’s the deal", () => {
   const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
-  assert.match(html, /What am I about to get into/);
+  assert.match(html, /Here’s the deal/);
   assert.match(html, /buildResearchSummary/);
-  assert.match(html, /\$\{summary\}\$\{why\}/);
+  assert.match(html, /\$\{why\}\$\{summary\}/);
+  assert.doesNotMatch(html, /What am I about to get into/);
+});
+
+test("live research does not turn unrelated job listings into current availability", () => {
+  const result = assessLiveEvidence({
+    name: "YouTube Content-Creation",
+    claim: "Create and publish videos for potential monetization",
+    answer: "YouTube information was found.",
+    profile: {},
+    sources: [
+      source("YouTube jobs on Indeed", "https://example.com/jobs", "There are 177 YouTube Video Content Creator jobs available on Indeed."),
+      source("YouTube official", "https://www.youtube.com/", "YouTube is an established platform with official creator documentation.")
+    ]
+  });
+  assert.equal(result.researchBreakdown.availability.evidence, "No clear evidence found.");
+});
+
+test("live research does not turn optional equipment advice into a biggest catch", () => {
+  const result = assessLiveEvidence({
+    name: "YouTube Content-Creation",
+    claim: "Create and publish videos for potential monetization",
+    answer: "YouTube information was found.",
+    profile: {},
+    sources: [
+      source("YouTube equipment guide", "https://example.com/youtube-equipment", "You do not need expensive camera equipment to start creating videos."),
+      source("YouTube official", "https://www.youtube.com/", "YouTube is an established platform with official creator documentation.")
+    ]
+  });
+  assert.equal(result.researchBreakdown.biggestCatch.evidence, "No clear evidence found.");
 });
