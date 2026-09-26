@@ -595,14 +595,14 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   ], { requireDirect: true });
 
   const workTypeEvidence = findEvidence([
-    { pattern: /\b(?:microtasks?|micro[- ]tasks?)\b/i, weight: 9 },
-    { pattern: /\b(?:freelanc(?:e|ing|er)|gig work)\b/i, weight: 9 },
-    { pattern: /\b(?:content creation|content creator|video creation|creator)\b/i, weight: 9 },
-    { pattern: /\b(?:survey(?:s)?|paid surveys)\b/i, weight: 9 },
-    { pattern: /\b(?:tutor(?:ing)?|teaching)\b/i, weight: 9 },
-    { pattern: /\b(?:affiliate marketing|affiliate)\b/i, weight: 9 },
-    { pattern: /\b(?:data entry|data annotation|ai data|data collection)\b/i, weight: 9 },
-    { pattern: /\b(?:translation|transcription)\b/i, weight: 9 }
+    { pattern: /\b(?:microtasks?|micro[- ]tasks?)\b/i, weight: 12 },
+    { pattern: /\b(?:freelanc(?:e|ing|er)|gig work)\b/i, weight: 12 },
+    { pattern: /\b(?:content creation|content creator|video creation)\b/i, weight: 12 },
+    { pattern: /\b(?:survey(?:s)?|paid surveys)\b/i, weight: 12 },
+    { pattern: /\b(?:tutor(?:ing)?|teaching)\b/i, weight: 12 },
+    { pattern: /\b(?:affiliate marketing|affiliate)\b/i, weight: 12 },
+    { pattern: /\b(?:data entry|data annotation|ai data|data collection)\b/i, weight: 12 },
+    { pattern: /\b(?:translation|transcription)\b/i, weight: 12 }
   ], { requireDirect: true });
 
   const legitimacyEvidence = findEvidence([
@@ -616,6 +616,11 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     { pattern: /\b(?:supported|available|eligible|accepts|accepted|open to|can participate|allowed|launched|rolled out)\b[^.]{0,180}\b(?:nigeria|nigerian)\b/i, weight: 12 },
     { pattern: /\b(?:nigeria|nigerian)\b[^.]{0,160}\b(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)\b/i, weight: 12 }
   ], { includeTitle: true, requireDirect: true });
+
+  const qualificationEvidence = findEvidence([
+    { pattern: /\b(?:\d[\d,]*|five|six|seven|eight|nine|ten|hundred|thousand)\s*(?:subscribers?|followers?|uploads?|views?|watch hours?|hours?)\b/i, weight: 14 },
+    { pattern: /\b(?:qualification|eligibility|eligible|requirements?|must have|minimum)\b[^.]{0,140}\b(?:subscribers?|followers?|uploads?|views?|watch hours?|hours?|application|approval|invite)\b/i, weight: 13 }
+  ], { requireDirect: true, rejectUnsupported: true });
 
   const deviceEvidence = findEvidence([
     { pattern: /\b(?:requires?|must have|need(?:s)?|only works on|available only on|access(?:ible)? (?:from|on))\b[^.]{0,120}\b(?:laptop|computer|desktop|smartphone|android|iphone|mobile phone|phone|tablet)\b/i, weight: 14 },
@@ -693,16 +698,16 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     legitimacy: { status: legitimacyEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(legitimacyEvidence) },
     nigeriaAccess: { status: nigeriaEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(nigeriaEvidence) },
     requirements: {
-      status: (deviceEvidence || kycEvidence) ? "Evidence found" : "No clear evidence found",
-      evidence: noEvidence([deviceEvidence, kycEvidence].filter(Boolean).join(" ")),
+      status: (deviceEvidence || kycEvidence || qualificationEvidence) ? "Conditions found" : "No clear evidence found",
+      evidence: noEvidence([qualificationEvidence, deviceEvidence, kycEvidence].filter(Boolean).join(" ")),
       device: noEvidence(deviceEvidence),
       kyc: noEvidence(kycEvidence)
     },
-    gettingPaid: { status: paymentEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(paymentEvidence) },
-    withdrawal: { status: withdrawalEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(withdrawalEvidence) },
-    earnings: { status: earningsEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(earningsEvidence) },
-    availability: { status: availabilityEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(availabilityEvidence), timeToFirstMoney: noEvidence(timeToMoneyEvidence) },
-    realCost: { status: startingCostEvidence ? "Evidence found" : "No clear evidence found", evidence: noEvidence(startingCostEvidence) },
+    gettingPaid: { status: paymentEvidence ? "Payment evidence found" : "Needs confirmation", evidence: noEvidence(paymentEvidence) },
+    withdrawal: { status: withdrawalEvidence ? "Withdrawal evidence found" : "Needs confirmation", evidence: noEvidence(withdrawalEvidence) },
+    earnings: { status: earningsEvidence ? "Earnings evidence found" : "No clear evidence found", evidence: noEvidence(earningsEvidence) },
+    availability: { status: availabilityEvidence ? "Current/conditional evidence found" : "Needs confirmation", evidence: noEvidence(availabilityEvidence), timeToFirstMoney: timeToMoneyEvidence || "No clear time-to-first-money information was found." },
+    realCost: { status: startingCostEvidence ? "Cost evidence found" : "No clear upfront cost found", evidence: startingCostEvidence || "No clear upfront cost found" },
     yourFit: {
       status: "Profile considered",
       evidence: [profile?.devices?.join(", "), profile?.budgetLabel, profile?.experience, profile?.time, Array.isArray(profile?.goals) ? profile.goals.join(", ") : ""].filter(Boolean).join(" • ") ||
