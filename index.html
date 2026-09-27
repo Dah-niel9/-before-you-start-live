@@ -353,24 +353,23 @@ function consideredResearch(data,u,claim){
   const kyc=(b.requirements&&b.requirements.kyc)||'No clear evidence found';
   const time=(b.availability&&b.availability.timeToFirstMoney)||'No clear evidence found';
 
-  const desktop='<div class="consider-grid">'+
-    '<div class="consider-card"><div class="consider-title">Opportunity</div>'+row('What the work is',ev('opportunity'))+row('Work type',workType)+row('Current availability',ev('availability'))+'</div>'+
-    '<div class="consider-card"><div class="consider-title">Requirements</div>'+row('Nigeria access',ev('nigeriaAccess'))+row('Phone / laptop',device)+row('KYC / ID',kyc)+'</div>'+
-    '<div class="consider-card"><div class="consider-title">Getting Paid</div>'+row('Payment methods',ev('gettingPaid'))+row('Withdrawal',ev('withdrawal'))+row('Starting cost',ev('realCost'))+'</div>'+
-    '<div class="consider-card"><div class="consider-title">Earnings</div>'+row('Earning potential',ev('earnings'))+row('Time to first money',time)+'</div>'+
-    '<div class="consider-card"><div class="consider-title">Your Fit</div>'+row('Devices',u.devices.join(', '))+row('Budget',u.budgetLabel)+row('ID',u.ids.join(', '))+row('Experience',u.experience)+row('Time',u.time)+row('Goal',u.goals.join(', '))+'</div>'+
-  '</div>';
+  const desktop=`<div class="consider-grid">
+    <div class="consider-card"><div class="consider-title">Opportunity</div>${row('What the work is',ev('opportunity'))}${row('Work type',workType)}${row('Current availability',ev('availability'))}</div>
+    <div class="consider-card"><div class="consider-title">Requirements</div>${row('Nigeria access',ev('nigeriaAccess'))}${row('Phone / laptop',device)}${row('KYC / ID',kyc)}</div>
+    <div class="consider-card"><div class="consider-title">Getting Paid</div>${row('Payment methods',ev('gettingPaid'))}${row('Withdrawal',ev('withdrawal'))}${row('Starting cost',ev('realCost'))}</div>
+    <div class="consider-card"><div class="consider-title">Earnings</div>${row('Earning potential',ev('earnings'))}${row('Time to first money',time)}</div>
+    <div class="consider-card"><div class="consider-title">Your Fit</div>${row('Devices',u.devices.join(', '))}${row('Budget',u.budgetLabel)}${row('ID',u.ids.join(', '))}${row('Experience',u.experience)}${row('Time',u.time)}${row('Goal',u.goals.join(', '))}</div>
+  </div>`;
 
-  const mobile='<div class="consider-mobile">'+
-    '<details><summary>Opportunity<span class="consider-summary">Work type • availability</span></summary><div class="consider-body">'+row('What the work is',ev('opportunity'))+row('Work type',workType)+row('Current availability',ev('availability'))+'</div></details>'+
-    '<details><summary>Requirements<span class="consider-summary">Access • device • KYC / ID</span></summary><div class="consider-body">'+row('Nigeria access',ev('nigeriaAccess'))+row('Phone / laptop',device)+row('KYC / ID',kyc)+'</div></details>'+
-    '<details><summary>Getting paid<span class="consider-summary">Payment method • withdrawal • starting cost</span></summary><div class="consider-body">'+row('Payment methods',ev('gettingPaid'))+row('Withdrawal',ev('withdrawal'))+row('Starting cost',ev('realCost'))+'</div></details>'+
-    '<details><summary>Earnings<span class="consider-summary">Earning potential • time to first money</span></summary><div class="consider-body">'+row('Earning potential',ev('earnings'))+row('Time to first money',time)+'</div></details>'+
-    '<details><summary>Your fit<span class="consider-summary">${escapeHtml(u.devices.join(', '))} • ${escapeHtml(u.budgetLabel)}</span></summary><div class="consider-body">'+row('Devices',u.devices.join(', '))+row('Budget',u.budgetLabel)+row('ID',u.ids.join(', '))+row('Experience',u.experience)+row('Time',u.time)+row('Goal',u.goals.join(', '))+'</div></details>'+
-  '</div>';
+  const mobile=`<div class="consider-mobile">
+    <details><summary>Opportunity<span class="consider-summary">Work type • availability</span></summary><div class="consider-body">${row('What the work is',ev('opportunity'))}${row('Work type',workType)}${row('Current availability',ev('availability'))}</div></details>
+    <details><summary>Requirements<span class="consider-summary">Access • device • KYC / ID</span></summary><div class="consider-body">${row('Nigeria access',ev('nigeriaAccess'))}${row('Phone / laptop',device)}${row('KYC / ID',kyc)}</div></details>
+    <details><summary>Getting paid<span class="consider-summary">Payment method • withdrawal • starting cost</span></summary><div class="consider-body">${row('Payment methods',ev('gettingPaid'))}${row('Withdrawal',ev('withdrawal'))}${row('Starting cost',ev('realCost'))}</div></details>
+    <details><summary>Earnings<span class="consider-summary">Earning potential • time to first money</span></summary><div class="consider-body">${row('Earning potential',ev('earnings'))}${row('Time to first money',time)}</div></details>
+    <details><summary>Your fit<span class="consider-summary">${escapeHtml(u.devices.join(', '))} • ${escapeHtml(u.budgetLabel)}</span></summary><div class="consider-body">${row('Devices',u.devices.join(', '))}${row('Budget',u.budgetLabel)}${row('ID',u.ids.join(', '))}${row('Experience',u.experience)}${row('Time',u.time)}${row('Goal',u.goals.join(', '))}</div></details>
+  </div>`;
   return desktop+mobile;
 }
-
 function buildResearchSummary(name,o,r,u){
   const b=o.researchBreakdown||{};
   return cleanResearchText(
