@@ -442,6 +442,19 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
         ? "A credible current source would need to directly contradict the flagged restriction or risk."
         : "More reliable, current evidence from official or independent sources is needed.";
 
+  const researchBreakdown = buildResearchBreakdown({
+    name,
+    claim,
+    sources: curatedSources,
+    profile,
+    assessment: { blockers, cautions, unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE" ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."] : [] }
+  });
+
+  if (!researchBreakdown.opportunity.evidence || researchBreakdown.opportunity.evidence === "No clear evidence found.") {
+    verdict = "NOT ENOUGH RELIABLE EVIDENCE";
+    reason = "Current sources do not clearly establish what you would actually do in this opportunity.";
+  }
+
   return {
     sources: curatedSources.map(({ text, host, qualityScore, ...source }) => source),
     matchedSourceCount: sourceCount,
@@ -456,7 +469,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
       ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."]
       : [],
     changes,
-    researchBreakdown: buildResearchBreakdown({ name, claim, sources: curatedSources, profile, assessment: { blockers, cautions, unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE" ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."] : [] } })
+    researchBreakdown
   };
 }
 function assessProfileFit({ sources, profile }) {
@@ -634,7 +647,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
 
   const workTypeEvidence = findEvidence([
     { pattern: /\b(?:microtasks?|micro[- ]tasks?)\b/i, weight: 12 },
-    { pattern: /\b(?:freelanc(?:e|ing|er)|gig work)\b/i, weight: 12 },
+    { pattern: /\b(?:freelanc(?:e|ing|er)s?|gig work)\b/i, weight: 12 },
     { pattern: /\b(?:content creation|content creator|video creation|creator business)\b/i, weight: 12 },
     { pattern: /\b(?:youtube|video)\b[^.]{0,100}\b(?:channel|creator|videos?|content)\b/i, weight: 11 },
     { pattern: /\b(?:survey(?:s)?|paid surveys)\b/i, weight: 12 },
@@ -675,7 +688,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
 
   const paymentEvidence = findEvidence([
     { pattern: /\b(?:payment method|payment methods|payout method|payout methods|ways to get paid|how to get paid|form of payment)\b[^.]{0,160}\b(?:paypal|payoneer|bank|paystack|flutterwave|wise|wire transfer|transfer|adsense|direct deposit|electronic funds transfer|eft)\b/i, weight: 16 },
-    { pattern: /\b(?:paid|payments?|payouts?)\b[^.]{0,120}\b(?:through|via|using|by)\b[^.]{0,80}\b(?:paypal|payoneer|bank|paystack|flutterwave|wise|wire transfer|transfer|adsense|direct deposit|eft)\b/i, weight: 16 },
+    { pattern: /\b(?:pay|pays|paid|payments?|payouts?)\b[^.]{0,120}\b(?:through|via|using|by)\b[^.]{0,80}\b(?:paypal|payoneer|bank|paystack|flutterwave|wise|wire transfer|transfer|adsense|direct deposit|eft)\b/i, weight: 16 },
     { pattern: /\b(?:paypal|payoneer|paystack|flutterwave|wise|adsense)\b[^.]{0,100}\b(?:payment|payout|paid|receive)\b/i, weight: 14 }
   ], { requireDirect: true, rejectUnsupported: true });
 
