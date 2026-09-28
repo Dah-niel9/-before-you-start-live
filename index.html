@@ -374,32 +374,98 @@ function buildResearchSummary(name,o,r,u){
   const b=o.researchBreakdown||{};
   return cleanResearchText(
     (b.opportunity&&b.opportunity.evidence) ||
-    o.claim ||
     'No clear evidence found.',
-    360
+    220
   );
+}
+
+function shortCheck(value,fallback='No clear evidence found.'){
+  const text=cleanResearchText(value||fallback,110);
+  return text || fallback;
+}
+
+function buildThreeChecks(o,live){
+  const b=o.researchBreakdown||{};
+  const legitimacy=live
+    ? (b.legitimacy&&b.legitimacy.evidence)
+    : 'Evidence-based; not a guarantee';
+  const accessibility=live
+    ? (b.nigeriaAccess&&b.nigeriaAccess.evidence)
+    : o.nigeria;
+  const worthwhile=live
+    ? (b.earnings&&b.earnings.evidence)
+    : o.economics;
+
+  return `<div class="card" style="margin-top:16px"><h3>Three checks</h3>
+    ${row('Legitimacy',shortCheck(legitimacy,'No clear evidence found.'))}
+    ${row('Accessibility',shortCheck(accessibility,'No clear evidence found.'))}
+    ${row('Worthwhile',shortCheck(worthwhile,'No clear evidence found.'))}
+  </div>`;
+}
+
+function buildRealCost(o,r,live){
+  const b=o.researchBreakdown||{};
+  const cash=live
+    ? (b.realCost&&b.realCost.evidence)
+    : o.startup;
+  const data=live
+    ? (b.realCost&&b.realCost.data)
+    : 'Variable';
+  const time=live
+    ? (b.realCost&&b.realCost.time)
+    : 'Depends on the time the work requires';
+  const opportunity=live
+    ? (b.realCost&&b.realCost.opportunity)
+    : 'Depends on what else you could do with the time';
+
+  return `<div class="card" style="margin-top:16px"><h3>💰 Real cost</h3>
+    ${row('Cash cost',shortCheck(cash,'No clear evidence found.'))}
+    ${row('Data cost',shortCheck(data,'No clear evidence found.'))}
+    ${row('Time cost',shortCheck(time,'No clear evidence found.'))}
+    ${row('Opportunity cost',shortCheck(opportunity,'Depends on your alternatives.'))}
+  </div>`;
 }
 
 function showResult(name,o,u,r,known,mode='known'){
   const icon=r.verdict==='TRY'?'🟢':r.verdict==='MAYBE'?'🟡':r.verdict==='SKIP'?'🔴':'⚪';
   const live=mode==='research';
-  const realCost=(known||live)?row('Cash cost',o.startup||'Unknown')+row('Data cost',live?'Variable':(/micro|task/i.test(o.cat)?'Medium to high':'Variable'))+row('Time cost',live?(o.time||'Variable'):(/slow|weeks|substantial/i.test(o.time)?'High':'Variable'))+row('Opportunity cost',r.verdict==='SKIP'?'High':'Variable'):'';
   let details=live?consideredResearch(o,u,o.claim):known?consideredKnown(o,u):consideredUnknown(u);
+
   if(known||live){
     const sourceLink=o.source?'<a href="'+escapeHtml(o.source)+'" target="_blank" rel="noopener">Open source</a>':'Current web research';
     details+=`<p class="source">Evidence confidence: ${escapeHtml(o.confidence||'Current evidence')}<br>Last reviewed: ${escapeHtml(o.lastVerified||'Current web research')}<br>Recheck before committing significant time, money or documents.<br>${sourceLink}</p>`;
   }else details+=`<p class="source">Evidence status: based on current web research for this check.</p>`;
-  const blockers=r.blockers||[],fits=r.fits||[],unknowns=r.unknowns||[],changes=r.changes||[];
-  const match=(blockers.length?'<h3>❌ Does not fit / blockers</h3><ul>'+blockers.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+(fits.length?'<h3>✅ Fits your situation</h3><ul>'+fits.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+(unknowns.length?'<h3>⚠️ Uncertain</h3><ul>'+unknowns.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'');
-  const catches=(known||live)?`<div class="notice"><b>⚠️ Biggest catch</b><p class="muted">${escapeHtml(o.catch||'Review the highlighted conditions, uncertainties and trade-offs before committing serious time.')}</p></div>`:'';
-  const summary=live?`<div class="notice" style="border-width:2px"><b>Here’s the deal</b><p class="muted">${escapeHtml(buildResearchSummary(name,o,r,u))}</p></div>`:'';
-  const why=`<div class="notice"><b>Why this verdict?</b><p class="muted">${escapeHtml(r.reason)}</p></div>`;
-  const categories=(known||live)?`<div class="card" style="margin-top:16px"><h3>Three checks</h3>${row('Legitimacy',live?((o.researchBreakdown&&o.researchBreakdown.legitimacy&&o.researchBreakdown.legitimacy.evidence)||'Evidence-based; not a guarantee'):'Evidence-based; not a guarantee')}${row('Accessibility',o.nigeria||'See current evidence')}${row('Worthwhile',o.economics||'See current evidence')}</div>`:'';
-  const cost=(known||live)?`<div class="card" style="margin-top:16px"><h3>💰 Real cost</h3>${realCost}</div>`:'';
-  const change=`<div class="notice"><b>What would change this verdict?</b><p class="muted">${escapeHtml(changes[0]||'Resolve the highlighted uncertainties and reassess.')}</p></div>`;
+
+  const blockers=r.blockers||[];
+  const fits=r.fits||[];
+  const changes=r.changes||[];
+
+  const match=
+    (blockers.length?'<h3>❌ Does not fit / blockers</h3><ul>'+blockers.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'')+
+    (fits.length?'<h3>✅ Fits your situation</h3><ul>'+fits.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'');
+
+  const catches=(known||live)
+    ?`<div class="notice"><b>⚠️ Biggest catch</b><p class="muted">${escapeHtml(o.catch||'No clear evidence found.')}</p></div>`
+    :'';
+
+  const summary=live
+    ?`<div class="notice" style="border-width:2px"><b>Here’s the deal</b><p class="muted">${escapeHtml(buildResearchSummary(name,o,r,u))}</p></div>`
+    :'';
+
+  const why=`<div class="notice"><b>Why this verdict?</b><p class="muted">${escapeHtml(cleanResearchText(r.reason||'No clear evidence found.',260))}</p></div>`;
+  const categories=(known||live)?buildThreeChecks(o,live):'';
+  const cost=(known||live)?buildRealCost(o,r,live):'';
+  const change=`<div class="notice"><b>What would change this verdict?</b><p class="muted">${escapeHtml(cleanResearchText(changes[0]||'Resolve the highlighted uncertainties and reassess.',240))}</p></div>`;
   const pill=live?'Live Research':known?'Known V1 opportunity':'Unknown opportunity';
+
   $('resultCard').innerHTML=`<span class="pill">${pill}</span><h2>${escapeHtml(name)}</h2><div class="verdict">${icon} ${escapeHtml(r.verdict)}</div>${why}${summary}${catches}${match}${change}<div class="card" style="margin-top:16px"><h3>What we considered</h3>${details}</div>${categories}${cost}`;
-  $('nextText').textContent=r.verdict==='TRY'?'Start carefully. Confirm the exact current requirements and payment terms before investing serious time.':r.verdict==='MAYBE'?'Resolve the highlighted conditions first. Do not commit serious time or money until the uncertain points are clear.':r.verdict==='SKIP'?'Do not spend more time or money on this route right now. Look for a better-fit opportunity.':'We need better evidence before a responsible recommendation is possible. Do not pay or submit sensitive documents yet.';
+  $('nextText').textContent=r.verdict==='TRY'
+    ?'Start carefully. Confirm the exact current requirements and payment terms before investing serious time.'
+    :r.verdict==='MAYBE'
+      ?'Resolve the highlighted conditions first. Do not commit serious time or money until the uncertain points are clear.'
+      :r.verdict==='SKIP'
+        ?'Do not spend more time or money on this route right now. Look for a better-fit opportunity.'
+        :'We need better evidence before a responsible recommendation is possible. Do not pay or submit sensitive documents yet.';
   go('result')
 }
 async function runCheck(){if(!validateProfile())return;const name=$('oppName').value.trim(),u=buildUser(),o=findByName(name);if(o){showResult(name,o,u,assessKnown(o,u),true);return}showLiveResearchLoading(name);try{const res=await fetch('/api/research',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,claim:$('oppClaim').value.trim(),url:$('oppUrl').value.trim(),profile:u})});const data=await res.json();if(!res.ok||!data.ok)throw new Error([data.error,data.detail].filter(Boolean).join(' ')||'Live Research could not complete.');showLiveResearchResult(name,data,u)}catch(e){showResult(name,null,u,{verdict:'NOT ENOUGH RELIABLE EVIDENCE',reason:'Live Research could not complete this check right now.',blockers:[],cautions:['This opportunity is not in our controlled V1 database.','Live Research returned an error.','Debug: '+String(e.message||'Unknown error').slice(0,500),'Do not pay or submit sensitive documents until the opportunity can be checked properly.'],fits:[],unknowns:[],changes:['Try the check again later.']},false)}}
