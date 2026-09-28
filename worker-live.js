@@ -738,11 +738,8 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     { pattern: /\b(?:spend|dedicate|commit)\b[^.]{0,80}\b(?:hours?|time)\b/i, weight: 12 }
   ], { requireDirect: true, rejectUnsupported: true });
 
-  const policyCatchEvidence = findEvidence([
-    { pattern: /\b(?:mass[- ]produced|repetitive content|reused content|copied content|may be ineligible|not eligible for monetization)\b/i, weight: 20 }
-  ], { requireDirect: true, rejectUnsupported: true });
-
   const specificCatch = findEvidence([
+    { pattern: /\b(?:mass[- ]produced|repetitive content|reused content|copied content|may be ineligible|not eligible for monetization)\b/i, weight: 20 },
     { pattern: /\b(?:not guaranteed|not available to everyone|limited|invite[- ]only|waitlist|project[- ]dependent|qualification|requires?|must have|minimum|threshold|competition|competitive)\b/i, weight: 9 },
     { pattern: /\b(?:earnings?|income)\b[^.]{0,140}\b(?:vary|varies|depends|not guaranteed)\b/i, weight: 11 },
     { pattern: /\b(?:fee|fees|commission|deposit|subscription|upfront cost)\b/i, weight: 8 }
@@ -754,12 +751,12 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   const noEvidence = value => value || "No clear evidence found.";
 
   const deal = workEvidence || "No clear evidence found.";
-  const catchEvidence = blockers[0] || policyCatchEvidence || specificCatch || cautions[0] || unknowns[0] || "No clear evidence found.";
+  const catchEvidence = blockers[0] || specificCatch || cautions[0] || unknowns[0] || "No clear evidence found.";
 
   const workTypeText = String(workTypeEvidence || "").toLowerCase();
   const workType =
     /\b(?:microtasks?|micro[- ]tasks?)\b/.test(workTypeText) ? "Microtasks" :
-    /\b(?:freelanc(?:e|ing|er)|gig work)\b/.test(workTypeText) ? "Freelancing" :
+    /\b(?:freelanc(?:e|ing|er)s?|gig work)\b/.test(workTypeText) ? "Freelancing" :
     /\b(?:content creation|content creator|video creation|creator business|youtube|video)\b/.test(workTypeText) ? "Content creation" :
     /\b(?:survey(?:s)?|paid surveys)\b/.test(workTypeText) ? "Surveys" :
     /\b(?:tutor(?:ing)?|teaching|online classes)\b/.test(workTypeText) ? "Tutoring / teaching" :
