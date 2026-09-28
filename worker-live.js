@@ -601,7 +601,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
       }));
   });
 
-  const isUnsupported = text => /(?:does not establish|doesn't establish|does not prove|doesn't prove|not evidence|not proof|not supported|unsupported|not available|unavailable|not eligible|not accepted|not offered|not provided)\b/i.test(text);
+  const isUnsupported = text => /(?:does not establish|doesn't establish|does not prove|doesn't prove|does not state|doesn't state|does not mention|doesn't mention|not evidence|not proof|not supported|unsupported|not available|unavailable|not eligible|not accepted|not offered|not provided)\\b/i.test(text);
 
   const candidates = sourceItems.filter(item =>
     !boilerplate.test(item.text) &&
@@ -736,11 +736,25 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   const deal = workEvidence || "No clear evidence found.";
   const catchEvidence = blockers[0] || specificCatch || cautions[0] || unknowns[0] || "No clear evidence found.";
 
+  const workTypeText = String(workTypeEvidence || "").toLowerCase();
+  const workType =
+    /\\b(?:microtasks?|micro[- ]tasks?)\\b/.test(workTypeText) ? "Microtasks" :
+    /\\b(?:freelanc(?:e|ing|er)|gig work)\\b/.test(workTypeText) ? "Freelancing" :
+    /\\b(?:content creation|content creator|video creation|creator business)\\b/.test(workTypeText) ? "Content creation" :
+    /\\b(?:survey(?:s)?|paid surveys)\\b/.test(workTypeText) ? "Surveys" :
+    /\\b(?:tutor(?:ing)?|teaching|online classes)\\b/.test(workTypeText) ? "Tutoring / teaching" :
+    /\\b(?:affiliate marketing|affiliate)\\b/.test(workTypeText) ? "Affiliate marketing" :
+    /\\b(?:data entry|data annotation|ai data|data collection)\\b/.test(workTypeText) ? "Data work" :
+    /\\b(?:translation|transcription)\\b/.test(workTypeText) ? "Translation / transcription" :
+    /\\b(?:remote work|remote job|customer service|virtual assistant)\\b/.test(workTypeText) ? "Remote work" :
+    /\\b(?:web3|crypto|token|nft|blockchain)\\b/.test(workTypeText) ? "Web3 / crypto" :
+    "No clear evidence found";
+
   return {
     opportunity: {
       status: workEvidence ? "Evidence found" : "No clear evidence found",
       evidence: noEvidence(deal),
-      workType: noEvidence(workTypeEvidence)
+      workType
     },
     legitimacy: {
       status: legitimacyEvidence ? "Evidence found" : "No clear evidence found",
