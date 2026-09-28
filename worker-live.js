@@ -424,7 +424,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     + officialSources
     + positiveHits
     - (negativeSources.length && positiveHits ? 1 : 0);
-  const confidence = verdict === "NOT ENOUGH RELIABLE EVIDENCE"
+  let confidence = verdict === "NOT ENOUGH RELIABLE EVIDENCE"
     ? "Low"
     : verdict === "SKIP"
       ? (officialNegativeSources.length >= 1 || negativeSources.length >= 2 ? "High for the flagged risks" : "Medium")
@@ -434,7 +434,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
           ? "Medium"
           : "Low");
 
-  const changes = verdict === "TRY"
+  let changes = verdict === "TRY"
     ? "Confirm the exact current requirements, payment terms and availability before starting."
     : verdict === "MAYBE"
       ? "Confirm the unresolved requirements, Nigeria access, payment terms and current availability."
@@ -452,7 +452,9 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
 
   if (!researchBreakdown.opportunity.evidence || researchBreakdown.opportunity.evidence === "No clear evidence found.") {
     verdict = "NOT ENOUGH RELIABLE EVIDENCE";
+    confidence = "Low";
     reason = "Current sources do not clearly establish what you would actually do in this opportunity.";
+    changes = "Find current evidence that clearly explains the work before committing time, money or documents.";
   }
 
   return {
