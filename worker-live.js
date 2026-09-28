@@ -601,7 +601,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
       }));
   });
 
-  const isUnsupported = text => /(?:does not establish|doesn't establish|does not prove|doesn't prove|does not state|doesn't state|does not mention|doesn't mention|not evidence|not proof|not supported|unsupported|not available|unavailable|not eligible|not accepted|not offered|not provided)\\b/i.test(text);
+  const isUnsupported = text => /(?:does not establish|doesn't establish|does not prove|doesn't prove|does not state|doesn't state|does not mention|doesn't mention|not evidence|not proof|not supported|unsupported|not available|unavailable|not eligible|not accepted|not offered|not provided)\b/i.test(text);
 
   const candidates = sourceItems.filter(item =>
     !boilerplate.test(item.text) &&
@@ -636,6 +636,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     { pattern: /\b(?:microtasks?|micro[- ]tasks?)\b/i, weight: 12 },
     { pattern: /\b(?:freelanc(?:e|ing|er)|gig work)\b/i, weight: 12 },
     { pattern: /\b(?:content creation|content creator|video creation|creator business)\b/i, weight: 12 },
+    { pattern: /\b(?:youtube|video)\b[^.]{0,100}\b(?:channel|creator|videos?|content)\b/i, weight: 11 },
     { pattern: /\b(?:survey(?:s)?|paid surveys)\b/i, weight: 12 },
     { pattern: /\b(?:tutor(?:ing)?|teaching|online classes)\b/i, weight: 12 },
     { pattern: /\b(?:affiliate marketing|affiliate)\b/i, weight: 12 },
@@ -722,6 +723,10 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     { pattern: /\b(?:spend|dedicate|commit)\b[^.]{0,80}\b(?:hours?|time)\b/i, weight: 12 }
   ], { requireDirect: true, rejectUnsupported: true });
 
+  const policyCatchEvidence = findEvidence([
+    { pattern: /\b(?:mass[- ]produced|repetitive content|reused content|copied content|may be ineligible|not eligible for monetization)\b/i, weight: 20 }
+  ], { requireDirect: true, rejectUnsupported: true });
+
   const specificCatch = findEvidence([
     { pattern: /\b(?:not guaranteed|not available to everyone|limited|invite[- ]only|waitlist|project[- ]dependent|qualification|requires?|must have|minimum|threshold|competition|competitive)\b/i, weight: 9 },
     { pattern: /\b(?:earnings?|income)\b[^.]{0,140}\b(?:vary|varies|depends|not guaranteed)\b/i, weight: 11 },
@@ -734,7 +739,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   const noEvidence = value => value || "No clear evidence found.";
 
   const deal = workEvidence || "No clear evidence found.";
-  const catchEvidence = blockers[0] || specificCatch || cautions[0] || unknowns[0] || "No clear evidence found.";
+  const catchEvidence = blockers[0] || policyCatchEvidence || specificCatch || cautions[0] || unknowns[0] || "No clear evidence found.";
 
   const workTypeText = String(workTypeEvidence || "").toLowerCase();
   const workType =
