@@ -647,9 +647,15 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
       else score = 0;
     }
 
-    if (score >= 4) {
+    const componentEvidence =
+      isKnownType &&
+      meaningfulTokenInContent &&
+      !jobBoard &&
+      !genericDefinition;
+
+    if (score >= 4 || componentEvidence) {
       acceptedSources.add(source.url);
-      identityHits.push({ url: source.url, score });
+      identityHits.push({ url: source.url, score: Math.max(score, componentEvidence ? 4 : score) });
     }
   }
 
