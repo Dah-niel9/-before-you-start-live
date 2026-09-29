@@ -201,6 +201,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   };
 
   const opportunityAliases = getOpportunityAliases(name, claim, url);
+  const identity = assessOpportunityIdentity({ name, claim, url, sources: normalizedSources });
 
   const matchesOpportunityWithAliases = source => {
     if (!source.text) return false;
@@ -215,7 +216,9 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     });
   };
 
-  const relevantSources = normalizedSources.filter(matchesOpportunityWithAliases);
+  const relevantSources = normalizedSources
+    .filter(matchesOpportunityWithAliases)
+    .filter(source => identity.acceptedSources.has(source.url));
   const sourceCount = relevantSources.length;
 
   // Source presentation is separate from verdict evidence: all relevant sources
@@ -383,6 +386,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   // TRY needs several independent positive dimensions, enough source coverage,
   // and either a likely official source or direct Nigeria-access evidence.
   const strongPositiveCase =
+    identity.confident &&
     sourceCount >= 3 &&
     positiveHits >= 3 &&
     negativeSources.length === 0 &&
@@ -397,7 +401,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   } else if (strongPositiveCase) {
     verdict = "TRY";
     reason = "Current evidence shows a real operation with multiple positive signals, including relevant access or support for Nigerian users.";
-  } else if (sourceCount >= 2 && positiveHits >= 1 && negativeSources.length === 0) {
+  } else if (identity.confident && sourceCount >= 2 && positiveHits >= 1 && negativeSources.length === 0) {
     verdict = "MAYBE";
     reason = "There is evidence that the opportunity may be real or accessible, but important conditions or uncertainties remain.";
   }
@@ -442,13 +446,22 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
         ? "A credible current source would need to directly contradict the flagged restriction or risk."
         : "More reliable, current evidence from official or independent sources is needed.";
 
-  const researchBreakdown = buildResearchBreakdown({
-    name,
-    claim,
-    sources: relevantSources,
-    profile,
-    assessment: { blockers, cautions, unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE" ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."] : [] }
-  });
+  const researchBreakdown = identity.confident
+    ? buildResearchBreakdown({
+        name,
+        claim,
+        sources: relevantSources,
+        profile,
+        assessment: { blockers, cautions, unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE" ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."] : [] }
+      })
+    : buildEmptyResearchBreakdown();
+
+  if (!identity.confident) {
+    verdict = "NOT ENOUGH RELIABLE EVIDENCE";
+    confidence = "Low";
+    reason = identity.reason;
+    changes = identity.changes;
+  }
 
   if (!researchBreakdown.opportunity.evidence || researchBreakdown.opportunity.evidence === "No clear evidence found.") {
     verdict = "NOT ENOUGH RELIABLE EVIDENCE";
@@ -546,6 +559,124 @@ function assessProfileFit({ sources, profile }) {
   }
 
   return { hardBlockers, cautions, matches };
+}
+
+
+function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] }) {
+  const normalizedName = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const nameTokens = normalizedName.split(" ").filter(Boolean);
+  const claimText = String(claim || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const claimTokens = claimText.split(" ").filter(token => token.length >= 4);
+
+  let suppliedHost = "";
+  try {
+    suppliedHost = url ? new URL(url).hostname.toLowerCase().replace(/^www\\./, "") : "";
+  } catch {}
+
+  const broadTerms = new Set([
+    "ai", "product", "service", "software", "app", "application", "tool",
+    "website", "business", "platform", "program", "course", "digital",
+    "online", "remote", "work", "job", "jobs", "opportunity", "money",
+    "income", "earning", "earnings", "career", "careers"
+  ]);
+
+  const knownOpportunityTypes = new Set([
+    "freelancing", "freelance", "affiliate marketing", "microtasks",
+    "micro task", "paid surveys", "survey", "tutoring", "online tutoring",
+    "content creation", "translation", "transcription", "data entry",
+    "data annotation", "virtual assistant", "customer service",
+    "remote work", "youtube automation"
+  ]);
+
+  const isKnownType = knownOpportunityTypes.has(normalizedName);
+  const broadTokenCount = nameTokens.filter(token => broadTerms.has(token)).length;
+  const ambiguousName =
+    !url &&
+    !claim &&
+    !isKnownType &&
+    broadTokenCount >= Math.max(1, Math.ceil(nameTokens.length / 2));
+
+  const normalize = value => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\\s+/g, " ").trim();
+  const compact = value => normalize(value).replace(/\\s+/g, "");
+
+  const acceptedSources = new Set();
+  const identityHits = [];
+
+  for (const source of sources) {
+    const title = normalize(source.title);
+    const content = normalize(source.content);
+    const host = normalize(source.host);
+    const exactInTitle = normalizedName && title.includes(normalizedName);
+    const allNameTokensInTitle =
+      nameTokens.length >= 2 && nameTokens.every(token => title.includes(token));
+    const exactInHost =
+      compact(normalizedName) && compact(host).includes(compact(normalizedName));
+    const exactInContent =
+      normalizedName && content.includes(normalizedName);
+    const claimOverlap =
+      claimTokens.length >= 2 &&
+      claimTokens.filter(token => content.includes(token) || title.includes(token)).length >= Math.min(3, claimTokens.length);
+
+    let score = 0;
+    if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) score += 8;
+    if (exactInTitle) score += 7;
+    if (allNameTokensInTitle) score += 5;
+    if (exactInHost) score += 6;
+    if (exactInContent) score += 2;
+    if (claimOverlap) score += 3;
+
+    const genericDefinition = /(?:what is|what are|definition of|meaning of|types of|examples of|introduction to|explained|glossary|dictionary)/i.test(title);
+    if (genericDefinition && !exactInTitle && !exactInHost && !suppliedHost) score -= 3;
+
+    if (ambiguousName) {
+      // A vague label such as "AI product" is not an identifiable opportunity.
+      // Do not let generic definitions, unrelated companies, or adjacent tools
+      // become evidence merely because they contain the words the user typed.
+      if (exactInTitle && !genericDefinition) score += 3;
+      else score = 0;
+    }
+
+    if (score >= 5) {
+      acceptedSources.add(source.url);
+      identityHits.push({ url: source.url, score });
+    }
+  }
+
+  const strongIdentitySources = identityHits.filter(hit => hit.score >= 7).length;
+  const confident =
+    Boolean(suppliedHost) ||
+    (!ambiguousName && strongIdentitySources >= 1 && identityHits.length >= 1) ||
+    (Boolean(claim) && identityHits.length >= 2 && strongIdentitySources >= 1);
+
+  return {
+    confident,
+    ambiguousName,
+    acceptedSources,
+    strongIdentitySources,
+    reason: ambiguousName
+      ? "The name entered is too broad to identify one specific opportunity. Add the exact platform, company, program or a short description so the research cannot mix unrelated sources."
+      : "Current sources do not clearly tie the evidence to the exact opportunity you entered.",
+    changes: ambiguousName
+      ? "Enter the specific opportunity name or add a short description/URL, then run the check again."
+      : "Add the exact opportunity name, source URL or a clearer description so the evidence can be tied to the same opportunity."
+  };
+}
+
+function buildEmptyResearchBreakdown() {
+  const noEvidence = "No clear evidence found.";
+  return {
+    opportunity: { status: "No clear evidence found", evidence: noEvidence, workType: "No clear evidence found" },
+    legitimacy: { status: "No clear evidence found", evidence: noEvidence },
+    nigeriaAccess: { status: "No clear evidence found", evidence: noEvidence },
+    requirements: { status: "No clear evidence found", evidence: noEvidence, device: noEvidence, kyc: noEvidence, qualification: noEvidence },
+    gettingPaid: { status: "Needs confirmation", evidence: noEvidence },
+    withdrawal: { status: "Needs confirmation", evidence: noEvidence },
+    earnings: { status: "No clear evidence found", evidence: noEvidence },
+    availability: { status: "Needs confirmation", evidence: noEvidence, timeToFirstMoney: noEvidence },
+    realCost: { status: "No clear upfront cost found", evidence: noEvidence, data: noEvidence, time: noEvidence, opportunity: "Depends on how much time you commit and what else you could do with that time." },
+    yourFit: { status: "Profile considered", evidence: "Your submitted profile is considered when the opportunity is clearly identified." },
+    biggestCatch: { status: "No clear evidence found", evidence: noEvidence }
+  };
 }
 
 function getOpportunityAliases(name, claim = "", url = "") {
