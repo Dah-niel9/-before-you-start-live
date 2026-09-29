@@ -217,7 +217,6 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   };
 
   const relevantSources = normalizedSources
-    .filter(matchesOpportunityWithAliases)
     .filter(source => identity.acceptedSources.has(source.url));
   const sourceCount = relevantSources.length;
 
