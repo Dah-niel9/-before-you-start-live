@@ -615,6 +615,8 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
       nameTokens.length >= 2 && nameTokens.every(token => title.includes(token));
     const meaningfulTokenInTitle =
       nameTokens.some(token => token.length >= 5 && !broadTerms.has(token) && title.includes(token));
+    const meaningfulTokenInContent =
+      nameTokens.some(token => token.length >= 5 && !broadTerms.has(token) && content.includes(token));
     const exactInHost =
       compact(normalizedName) && compact(host).includes(compact(normalizedName));
     const exactInContent =
@@ -633,6 +635,7 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
     if (exactInHost) score += 6;
     if (exactInContent) score += 2;
     if (meaningfulTokenInTitle) score += isKnownType ? 4 : 1;
+    if (meaningfulTokenInContent) score += isKnownType ? 3 : 0;
     if (claimOverlap) score += 3;
     if (genericDefinition && !exactInTitle && !exactInHost && !suppliedHost) score -= 3;
     if (jobBoard && !exactInTitle) score -= 5;
