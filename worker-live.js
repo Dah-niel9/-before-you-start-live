@@ -616,7 +616,11 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
     const meaningfulTokenInTitle =
       nameTokens.some(token => token.length >= 5 && !broadTerms.has(token) && title.includes(token));
     const meaningfulTokenInContent =
-      nameTokens.some(token => token.length >= 5 && !broadTerms.has(token) && content.includes(token));
+      nameTokens.some(token => {
+        if (token.length < 5 || broadTerms.has(token)) return false;
+        const family = token.replace(/(?:ing|ers|er|s)$/, "");
+        return content.includes(token) || (family.length >= 5 && content.includes(family));
+      });
     const exactInHost =
       compact(normalizedName) && compact(host).includes(compact(normalizedName));
     const exactInContent =
