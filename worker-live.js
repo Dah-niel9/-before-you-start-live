@@ -643,7 +643,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
 
   const workEvidence = findEvidence([
     { pattern: /\b(?:the work|the job|the role|this opportunity|the platform|users?|workers?|creators?|contributors?|freelancers?|participants?)\b[^.]{0,180}\b(?:involves?|means?|requires?|lets?|allows?|can|complete|perform|provide|create|produce|publish|upload|deliver)\b[^.]{0,180}\b(?:videos?|content|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|articles?|data|microtasks?|clients?|channels?|scripts?|editing|voiceovers?|thumbnails?|proposals?|gigs?)\b/i, weight: 16 },
-    { pattern: /\b(?:is|means|involves|refers to)\b[^.]{0,180}\b(?:outsourc|freelanc|script|voiceover|edit|thumbnail|channel|client|task|survey|lesson|design|article|data|service)\w*/i, weight: 15 },
+    { pattern: /\b(?:is|means|involves|refers to)\b[^.]{0,120}\b(?:outsourc\w*|freelanc\w*|script\w*|voiceover\w*|edit\w*|thumbnail\w*|channel\w*|client\w*|task\w*|survey\w*|lesson\w*|design\w*|data\w*|service\w*)\b/i, weight: 15 },
     { pattern: /\b(?:create|creating|produce|producing|publish|publishing|upload|uploading|complete|completing|perform|providing|deliver|delivering)\b[^.]{0,120}\b(?:videos?|content|articles?|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|data|microtasks?)\b/i, weight: 13 }
   ], { requireDirect: true, exclude: [jobBoardNoise, /\b(?:camera|microphone|equipment|editing software)\b[^.]{0,80}\b(?:not need|don't need|do not need|unnecessary)\b/i] });
 
