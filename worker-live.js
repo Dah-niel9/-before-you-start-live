@@ -148,7 +148,7 @@ async function handleResearch(request, env) {
         ? combinedAnswer
         : "Current sources were found, but the targeted searches did not return a verified opportunity-specific research summary.",
       sources,
-      researchBreakdown: buildResearchBreakdown({ name, claim, sources: assessment.sources || [], profile, assessment }),
+      researchBreakdown: assessment.researchBreakdown,
       ...assessment
     });
   } catch (error) {
@@ -262,11 +262,11 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   };
 
   const strongNegativePatterns = [
-    /\bscam(?:med|ming)?\b|\bfraud(?:ulent)?\b|\bfake platform\b|\bimpersonat(?:ion|ing|ed)\b|\bphishing\b|\bmalware\b|\bponzi\b|\bpyramid scheme\b/,
+    /\b(?:is|was|are|were|called|described as)\s+(?:a\s+)?(?:scam|fraud|fake platform)\b|\b(?:scam|fraud)\b[^.]{0,100}\b(?:warning|alert|report|investigation)\b|\b(?:warning|alert|report|investigation)\b[^.]{0,100}\b(?:scam|fraud|impersonat(?:ion|ing|ed)|phishing)\b/,
     /nigeria[^.]{0,180}(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)/,
     /(?:requires|must|need to)\s+(?:pay|deposit|invest|send money)[^.]{0,120}(?:before|to start|to withdraw|for access)/,
     /withdraw(?:al|als)[^.]{0,120}(?:impossible|not possible|blocked|unable|cannot|can't|complaint)/,
-    /(?:regulatory|government) warning|official warning/
+    /(?:regulatory|government)\s+(?:warning|alert|action)|official\s+(?:warning|alert)/
   ];
 
   const positivePatterns = {
@@ -359,7 +359,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
 
   const nigeriaRestriction = /nigeria[^.]{0,180}(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)/;
   const upfrontPayment = /(?:requires|must|need to)\s+(?:pay|deposit|invest|send money)[^.]{0,120}(?:before|to start|to withdraw|for access)/;
-  const scamWarning = /\bscam(?:med|ming)?\b|\bfraud(?:ulent)?\b|\bfake platform\b|\bimpersonat(?:ion|ing|ed)\b|\bphishing\b|\bmalware\b|\bponzi\b|\bpyramid scheme\b/;
+  const scamWarning = /\b(?:is|was|are|were|called|described as)\s+(?:a\s+)?(?:scam|fraud|fake platform)\b|\b(?:scam|fraud)\b[^.]{0,100}\b(?:warning|alert|report|investigation)\b|\b(?:warning|alert|report|investigation)\b[^.]{0,100}\b(?:scam|fraud|impersonat(?:ion|ing|ed)|phishing)\b/;
 
   if (officialNegativeSources.length || negativeSources.length >= 2) {
     if (officialNegativeSources.some(x => supportsPattern(x.source, nigeriaRestriction)) ||
@@ -391,7 +391,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   let verdict = "NOT ENOUGH RELIABLE EVIDENCE";
   let reason = "The available sources do not provide enough consistent evidence for a responsible recommendation.";
 
-  if (blockers.length || negativeSources.length >= 2) {
+  if (blockers.length) {
     verdict = "SKIP";
     reason = "The current evidence contains serious problems or restrictions that make this route unsuitable to pursue right now.";
   } else if (strongPositiveCase) {
@@ -445,7 +445,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
   const researchBreakdown = buildResearchBreakdown({
     name,
     claim,
-    sources: curatedSources,
+    sources: relevantSources,
     profile,
     assessment: { blockers, cautions, unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE" ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."] : [] }
   });
