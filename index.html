@@ -347,7 +347,7 @@ function consideredUnknown(u){
 }
 function consideredResearch(data,u,claim){
   const b=data.researchBreakdown||{};
-  const ev=(key,fallback='No clear evidence found.')=>String((b[key]&&b[key].evidence)||fallback);
+  const ev=(key,fallback='No clear evidence found.')=>cleanResearchText(String((b[key]&&b[key].evidence)||fallback),key==='opportunity'?180:220);
   const workType=(b.opportunity&&b.opportunity.workType)||'No clear evidence found';
   const device=(b.requirements&&b.requirements.device)||'No clear evidence found';
   const kyc=(b.requirements&&b.requirements.kyc)||'No clear evidence found';
@@ -375,12 +375,12 @@ function buildResearchSummary(name,o,r,u){
   return cleanResearchText(
     (b.opportunity&&b.opportunity.evidence) ||
     'No clear evidence found.',
-    220
-  );
+    180
+  ).replace(/^\s*(?:\[\.\.\.\]|\.\.\.)\s*/,'');
 }
 
 function shortCheck(value,fallback='No clear evidence found.'){
-  const text=cleanResearchText(value||fallback,110);
+  const text=cleanResearchText(value||fallback,85);
   return text || fallback;
 }
 
