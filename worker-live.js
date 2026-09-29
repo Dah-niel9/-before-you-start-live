@@ -642,7 +642,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   };
 
   const workEvidence = findEvidence([
-    { pattern: /\b(?:the work|the job|the role|this opportunity|the platform|users?|workers?|creators?|contributors?|freelancers?|participants?)\b[^.]{0,180}\b(?:involves?|means?|requires?|lets?|allows?|can|complete|perform|provide|create|produce|publish|upload|deliver)\b[^.]{0,180}\b(?:videos?|content|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|articles?|data|microtasks?|clients?|channels?|scripts?|editing|voiceovers?|thumbnails?|proposals?|gigs?)\b/i, weight: 16 },
+    { pattern: /\b(?:the work|the job|the role|this opportunity|the platform|users?|workers?|creators?|contributors?|freelancers?|participants?)\b[^.]{0,160}\b(?:involves?|means?|requires?|lets?|allows?|complete|perform|provide|create|produce|publish|upload|deliver|edit|write|record|manage|outsource)\b[^.]{0,160}\b(?:videos?|content|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|articles?|data|microtasks?|clients?|channels?|scripts?|editing|voiceovers?|thumbnails?|proposals?|gigs?)\b/i, weight: 16 },
     { pattern: /\b(?:is|means|involves|refers to)\b[^.]{0,120}\b(?:outsourc\w*|freelanc\w*|script\w*|voiceover\w*|edit\w*|thumbnail\w*|channel\w*|client\w*|task\w*|survey\w*|lesson\w*|design\w*|data\w*|service\w*)\b/i, weight: 15 },
     { pattern: /\b(?:create|creating|produce|producing|publish|publishing|upload|uploading|complete|completing|perform|providing|deliver|delivering)\b[^.]{0,120}\b(?:videos?|content|articles?|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|data|microtasks?)\b/i, weight: 13 }
   ], { requireDirect: true, exclude: [jobBoardNoise, /\b(?:camera|microphone|equipment|editing software)\b[^.]{0,80}\b(?:not need|don't need|do not need|unnecessary)\b/i] });
@@ -709,7 +709,8 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   ], { requireDirect: true, rejectUnsupported: true, exclude: [/\b(?:camera|microphone|equipment|studio|software)\b/i] });
 
   const earningsEvidence = findEvidence([
-    { pattern: /\b(?:earnings?|income|revenue)\b[^.]{0,160}\b(?:\$|€|£|₦|ngn|usd|per hour|per task|per project|per video|per view|rate|range|var(?:y|ies)|depends|not guaranteed|commission)\b/i, weight: 16 },
+    { pattern: /\b(?:earnings?|income|revenue)\b[^.]{0,160}\b(?:\$|€|£|₦|ngn|usd|per hour|per task|per project|per video|per view|rate|range|var(?:y|ies)|depends|not guaranteed|commission|share|advertising|ads?)\b/i, weight: 16 },
+    { pattern: /\b(?:share|generate|earn|receive)\b[^.]{0,120}\b(?:revenue|income|earnings?)\b/i, weight: 13 },
     { pattern: /\b(?:\$|€|£|₦|ngn|usd)\s?[\d,]+(?:\s?(?:per|\/)\s?(?:hour|task|project|video|view|month|day))?\b/i, weight: 12 },
     { pattern: /\b(?:pay|pays|paid)\b[^.]{0,120}\b(?:per task|per project|per hour|per video|per view|commission|rate)\b/i, weight: 13 },
     { pattern: /\b(?:earnings?|income)\b[^.]{0,140}\b(?:vary|varies|depends on|not guaranteed|fluctuate)\b/i, weight: 14 }
