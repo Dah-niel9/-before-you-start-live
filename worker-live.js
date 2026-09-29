@@ -39,26 +39,14 @@ async function handleResearch(request, env) {
     ].filter(Boolean).join(" ");
 
     const researchQueries = [
-      [
-        `What is "${name}" and how does it work? Describe what a person actually does, what they receive or produce, and how the opportunity operates. Focus only on this exact opportunity.`,
-        claim ? `User claim: "${claim}".` : "",
-        url ? `Reference URL: ${url}` : ""
-      ].filter(Boolean).join(" "),
-      [
-        `"${name}" Nigeria availability requirements device KYC identity verification eligibility. Is it accessible to people in Nigeria? What exact requirements apply?`,
-        url ? `Reference URL: ${url}` : ""
-      ].filter(Boolean).join(" "),
-      [
-        `"${name}" payment methods payout withdrawal minimum threshold fees earnings rates income current availability. Use current opportunity-specific evidence.`,
-        url ? `Reference URL: ${url}` : ""
-      ].filter(Boolean).join(" "),
-      [
-        `"${name}" official website legitimacy current status availability risks limitations restrictions. Prefer official or primary sources and current information.`,
-        url ? `Reference URL: ${url}` : ""
-      ].filter(Boolean).join(" ")
+      { key: "opportunity", query: [`What is "${name}" as a type of work or earning opportunity? Explain what a person actually does, what they create/provide, who pays them, and how the opportunity works. Do not substitute a related platform, job listing, company, tool or adjacent business. If the term is a broad work category, describe the category rather than inventing a specific platform.`, claim ? `User claim: "${claim}".` : "", url ? `Reference URL: ${url}` : ""].filter(Boolean).join(" ") },
+      { key: "access", query: [`For "${name}" as the work/earning opportunity, what applies specifically to a person in Nigeria: geographic access, device requirements, identity/KYC requirements, eligibility and qualifications? Do not answer with unrelated jobs, generic platform information, or requirements for a different opportunity.`, url ? `Reference URL: ${url}` : ""].filter(Boolean).join(" ") },
+      { key: "money", query: [`For "${name}" as the work/earning opportunity, how does the person get paid, what payout/withdrawal rules apply, what earnings/rates or revenue model are documented, and what is known about the path to first money? Distinguish payout frequency from time to first money. Do not use unrelated platform, job, or industry evidence.`, url ? `Reference URL: ${url}` : ""].filter(Boolean).join(" ") },
+      { key: "status", query: [`For "${name}" as the work/earning opportunity, what current evidence shows about availability, legitimacy, restrictions, limitations and important catches? Prefer official or primary sources, but include useful independent evidence when relevant. Do not substitute unrelated companies, job listings or generic industry articles.`, url ? `Reference URL: ${url}` : ""].filter(Boolean).join(" ") },
+      { key: "cost", query: [`For "${name}" as the work/earning opportunity, what actual starting cash costs, required tools or paid services, internet/data requirements, and ongoing time requirements are documented? Separate mandatory costs from optional equipment and separate time cost from time to first money.`, url ? `Reference URL: ${url}` : ""].filter(Boolean).join(" ") }
     ];
 
-    const searchResults = await Promise.all(researchQueries.map(async (query) => {
+    const searchResults = await Promise.all(researchQueries.map(async ({ key, query }) => {
       const response = await fetch("https://api.tavily.com/search", {
         method: "POST",
         headers: {
@@ -66,7 +54,7 @@ async function handleResearch(request, env) {
           "authorization": `Bearer ${env.TAVILY_API_KEY}`
         },
         body: JSON.stringify({
-          query: query.slice(0, 400),
+          query: query.slice(0, 700),
           search_depth: "advanced",
           topic: "general",
           max_results: 5,
@@ -78,10 +66,10 @@ async function handleResearch(request, env) {
 
       if (!response.ok) {
         const detail = await response.text();
-        return { ok: false, status: response.status, detail: detail.slice(0, 500), data: null };
+        return { key, ok: false, status: response.status, detail: detail.slice(0, 500), data: null };
       }
 
-      return { ok: true, status: response.status, detail: "", data: await response.json() };
+      return { key, ok: true, status: response.status, detail: "", data: await response.json() };
     }));
 
     const failedSearches = searchResults.filter(result => !result.ok);
@@ -104,21 +92,28 @@ async function handleResearch(request, env) {
         const sourceUrl = String(item.url || "").trim();
         if (!sourceUrl) continue;
         const existing = sourceMap.get(sourceUrl);
-        const candidate = {
-          title: item.title || sourceUrl || "Source",
-          url: sourceUrl,
-          content: item.content || ""
-        };
-        if (!existing || String(candidate.content).length > String(existing.content).length) {
-          sourceMap.set(sourceUrl, candidate);
-        }
+        const candidate = { title: item.title || sourceUrl || "Source", url: sourceUrl, content: item.content || "", researchKeys: [result.key] };
+        if (existing) {
+          existing.researchKeys = [...new Set([...(existing.researchKeys || []), result.key])];
+          if (String(candidate.content).length > String(existing.content).length) {
+            existing.title = candidate.title;
+            existing.content = candidate.content;
+          }
+        } else sourceMap.set(sourceUrl, candidate);
       }
     }
-
-    const sources = [...sourceMap.values()].slice(0, 20);
-    const answers = successfulSearches
-      .map(result => String(result.data?.answer || "").trim())
-      .filter(Boolean);
+    const sources = [...sourceMap.values()].slice(0, 30);
+    const researchPackets = successfulSearches.map(result => ({
+      key: result.key,
+      answer: String(result.data?.answer || "").trim(),
+      sources: (Array.isArray(result.data?.results) ? result.data.results : []).map(item => ({
+        title: item.title || String(item.url || "").trim() || "Source",
+        url: String(item.url || "").trim(),
+        content: item.content || "",
+        researchKey: result.key
+      })).filter(item => item.url)
+    }));
+    const answers = researchPackets.map(packet => packet.answer).filter(Boolean);
     const combinedAnswer = answers.join(" ");
 
     console.log("Live Research: targeted searches succeeded.", {
@@ -133,7 +128,8 @@ async function handleResearch(request, env) {
       answer: combinedAnswer,
       sources,
       profile,
-      url
+      url,
+      researchPackets
     });
 
 ;
@@ -162,7 +158,7 @@ async function handleResearch(request, env) {
   }
 }
 
-export function assessLiveEvidence({ name, claim, answer, sources, profile, url = "" }) {
+export function assessLiveEvidence({ name, claim, answer, sources, profile, url = "", researchPackets = [] }) {
   const nameTokens = String(name || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
@@ -450,6 +446,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
         name,
         claim,
         sources: relevantSources.map(source => ({ ...source, __identity: true })),
+        researchPackets,
         profile,
         assessment: { blockers, cautions, unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE" ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."] : [] }
       })
@@ -644,10 +641,10 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
     if (jobBoard && !exactInTitle) score -= 5;
 
     if (ambiguousName) {
-      // A vague label such as "AI product" is not an identifiable opportunity.
-      // Generic definitions and adjacent companies must not become evidence.
-      if (exactInTitle && !genericDefinition) score += 3;
-      else score = 0;
+      // Broad work categories are valid research targets. Provenance, not the
+      // category label, protects each field from unrelated evidence.
+      if (exactInTitle) score += 3;
+      if (genericDefinition && exactInTitle) score += 1;
     }
 
     const componentEvidence =
@@ -665,7 +662,7 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
   const strongIdentitySources = identityHits.filter(hit => hit.score >= 6).length;
   const confident =
     Boolean(suppliedHost) ||
-    (!ambiguousName && strongIdentitySources >= 1 && identityHits.length >= 1) ||
+    (identityHits.length >= 2 && strongIdentitySources >= 1) ||
     (Boolean(claim) && identityHits.length >= 2 && strongIdentitySources >= 1);
 
   return {
@@ -673,12 +670,8 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
     ambiguousName,
     acceptedSources,
     strongIdentitySources,
-    reason: ambiguousName
-      ? "The name entered is too broad to identify one specific opportunity. Add the exact platform, company, program or a short description so the research cannot mix unrelated sources."
-      : "Current sources do not clearly tie the evidence to the exact opportunity you entered.",
-    changes: ambiguousName
-      ? "Enter the specific opportunity name or add a short description/URL, then run the check again."
-      : "Add the exact opportunity name, source URL or a clearer description so the evidence can be tied to the same opportunity."
+    reason: "Current sources do not yet provide enough opportunity-specific evidence to answer the work questions responsibly.",
+    changes: "Add a short description or source URL if you want to narrow the category; otherwise recheck for stronger current evidence."
   };
 }
 
@@ -722,7 +715,7 @@ function getOpportunityAliases(name, claim = "", url = "") {
   return [...aliases].filter(alias => alias.length >= 4);
 }
 
-export function buildResearchBreakdown({ name, claim, sources = [], profile = {}, assessment = {} }) {
+export function buildResearchBreakdown({ name, claim, sources = [], researchPackets = [], profile = {}, assessment = {} }) {
   const normalizedName = String(name || "").trim();
   const aliases = getOpportunityAliases(normalizedName, claim);
   const aliasTokens = aliases
@@ -763,6 +756,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
         url,
         host,
         sourceMatches,
+        researchKeys: Array.isArray(source.researchKeys) ? source.researchKeys : (source.researchKey ? [source.researchKey] : []),
         search: (title + " " + text).toLowerCase()
       }));
   });
@@ -777,6 +771,10 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   const findEvidence = (rules, options = {}) => {
     let best = null;
     for (const item of candidates) {
+      if (Array.isArray(options.allowedKeys) && options.allowedKeys.length) {
+        const itemKeys = Array.isArray(item.researchKeys) ? item.researchKeys : [];
+        if (!options.allowedKeys.some(key => itemKeys.includes(key))) continue;
+      }
       const searchable = options.includeTitle ? (item.title + " " + item.text) : item.text;
       if (boilerplate.test(searchable)) continue;
       if (options.exclude?.some(pattern => pattern.test(searchable))) continue;
@@ -795,8 +793,10 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
   const workEvidence = findEvidence([
     { pattern: /\b(?:the work|the job|the role|this opportunity|the platform|users?|workers?|creators?|contributors?|freelancers?|participants?)\b[^.]{0,160}\b(?:involves?|means?|requires?|lets?|allows?|complete|perform|provide|create|produce|publish|upload|deliver|edit|write|record|manage|outsource)\b[^.]{0,160}\b(?:videos?|content|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|articles?|data|microtasks?|clients?|channels?|scripts?|editing|voiceovers?|thumbnails?|proposals?|gigs?)\b/i, weight: 16 },
     { pattern: /\b(?:is|means|involves|refers to)\b[^.]{0,120}\b(?:outsourc\w*|freelanc\w*|script\w*|voiceover\w*|edit\w*|thumbnail\w*|channel\w*|client\w*|task\w*|survey\w*|lesson\w*|design\w*|data\w*|service\w*)\b/i, weight: 15 },
-    { pattern: /\b(?:create|creating|produce|producing|publish|publishing|upload|uploading|complete|completing|perform|providing|deliver|delivering)\b[^.]{0,120}\b(?:videos?|content|articles?|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|data|microtasks?)\b/i, weight: 13 }
-  ], { requireDirect: true, exclude: [jobBoardNoise, /\b(?:camera|microphone|equipment|editing software)\b[^.]{0,80}\b(?:not need|don't need|do not need|unnecessary)\b/i] });
+    { pattern: /\b(?:create|creating|produce|producing|publish|publishing|upload|uploading|complete|completing|perform|providing|deliver|delivering)\b[^.]{0,120}\b(?:videos?|content|articles?|tasks?|projects?|surveys?|services?|lessons?|classes|designs?|data|microtasks?)\b/i, weight: 13 },
+    { pattern: /\b(?:build|building|develop|developing|design|designing|launch|launching|sell|selling)\b[^.]{0,120}\b(?:ai|artificial intelligence)[^.]{0,100}\b(?:product|products|software|tool|tools|app|application|saas)\b/i, weight: 15 },
+    { pattern: /\b(?:ai|artificial intelligence)\b[^.]{0,100}\b(?:product|products|software|tool|tools|app|application|saas)\b[^.]{0,120}\b(?:build|building|develop|developing|design|designing|sell|selling|launch|launching)\b/i, weight: 15 },
+  ], {allowedKeys: ["opportunity"],  requireDirect: true, exclude: [jobBoardNoise, /\b(?:camera|microphone|equipment|editing software)\b[^.]{0,80}\b(?:not need|don't need|do not need|unnecessary)\b/i] });
 
   const workTypeEvidence = findEvidence([
     { pattern: /\b(?:microtasks?|micro[- ]tasks?)\b/i, weight: 12 },
@@ -809,41 +809,42 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     { pattern: /\b(?:data entry|data annotation|ai data|data collection)\b/i, weight: 12 },
     { pattern: /\b(?:translation|transcription)\b/i, weight: 12 },
     { pattern: /\b(?:remote work|remote job|customer service|virtual assistant)\b/i, weight: 12 },
-    { pattern: /\b(?:web3|crypto|token|nft|blockchain)\b/i, weight: 10 }
-  ], { requireDirect: true, exclude: [jobBoardNoise] });
+    { pattern: /\b(?:web3|crypto|token|nft|blockchain)\b/i, weight: 10 },
+    { pattern: /\b(?:ai product|artificial intelligence product|ai products|ai software|ai saas)\b/i, weight: 13 },
+  ], {allowedKeys: ["opportunity"],  requireDirect: true, exclude: [jobBoardNoise] });
 
   const legitimacyEvidence = findEvidence([
     { pattern: /\b(?:official (?:site|website|support|documentation)|terms of service|privacy policy|help center|support center)\b/i, weight: 8 },
     { pattern: /\b(?:established|registered|operating since|founded in|official company|official platform)\b/i, weight: 7 },
     { pattern: /\b(?:verified|legitimate|legit|reputable)\b/i, weight: 6 }
-  ], { includeTitle: true, requireDirect: true, rejectUnsupported: true });
+  ], {allowedKeys: ["status"],  includeTitle: true, requireDirect: true, rejectUnsupported: true });
 
   const nigeriaEvidence = findEvidence([
     { pattern: /\b(?:nigeria|nigerian)\b[^.]{0,180}\b(?:supported|available|eligible|accepts|accepted|open to|can participate|allowed|launched|rolled out)\b/i, weight: 12 },
     { pattern: /\b(?:supported|available|eligible|accepts|accepted|open to|can participate|allowed|launched|rolled out)\b[^.]{0,180}\b(?:nigeria|nigerian)\b/i, weight: 12 },
     { pattern: /\b(?:nigeria|nigerian)\b[^.]{0,160}\b(?:not supported|unsupported|excluded|unavailable|blocked|prohibited)\b/i, weight: 12 }
-  ], { includeTitle: true, requireDirect: true });
+  ], {allowedKeys: ["access"],  includeTitle: true, requireDirect: true });
 
   const qualificationEvidence = findEvidence([
     { pattern: /\b(?:\d[\d,]*|five|six|seven|eight|nine|ten|hundred|thousand)\s*(?:subscribers?|followers?|uploads?|views?|watch hours?|hours?|clients?|projects?|applications?)\b/i, weight: 14 },
     { pattern: /\b(?:qualification|eligibility|eligible|requirements?|must have|minimum)\b[^.]{0,140}\b(?:subscribers?|followers?|uploads?|views?|watch hours?|hours?|application|approval|invite|experience|portfolio|skills?)\b/i, weight: 13 }
-  ], { requireDirect: true, rejectUnsupported: true });
+  ], {allowedKeys: ["access"],  requireDirect: true, rejectUnsupported: true });
 
   const deviceEvidence = findEvidence([
     { pattern: /\b(?:requires?|must have|need(?:s)?|only works on|available only on|access(?:ible)? (?:from|on))\b[^.]{0,120}\b(?:laptop|computer|desktop|smartphone|android|iphone|mobile phone|phone|tablet)\b/i, weight: 14 },
     { pattern: /\b(?:laptop|computer|desktop|smartphone|android|iphone|mobile phone|phone|tablet)\b[^.]{0,100}\b(?:required|necessary|needed|supported)\b/i, weight: 12 }
-  ], { requireDirect: true });
+  ], {allowedKeys: ["access"],  requireDirect: true });
 
   const kycEvidence = findEvidence([
     { pattern: /\b(?:kyc|identity verification|id verification|proof of identity|government[- ]issued id|nin|national id|passport|driver'?s licence|driver'?s license|voter'?s card|address verification|tax information|tax info)\b/i, weight: 14 },
     { pattern: /\b(?:verify|verification)\b[^.]{0,80}\b(?:identity|government id|national id|passport|driver|address|tax)\b/i, weight: 12 }
-  ], { requireDirect: true });
+  ], {allowedKeys: ["access"],  requireDirect: true });
 
   const paymentEvidence = findEvidence([
     { pattern: /\b(?:payment method|payment methods|payout method|payout methods|ways to get paid|how to get paid|form of payment)\b[^.]{0,160}\b(?:paypal|payoneer|bank|paystack|flutterwave|wise|wire transfer|transfer|adsense|direct deposit|electronic funds transfer|eft)\b/i, weight: 16 },
     { pattern: /\b(?:pay|pays|paid|payments?|payouts?)\b[^.]{0,120}\b(?:through|via|using|by)\b[^.]{0,80}\b(?:paypal|payoneer|bank|paystack|flutterwave|wise|wire transfer|transfer|adsense|direct deposit|eft)\b/i, weight: 16 },
     { pattern: /\b(?:paypal|payoneer|paystack|flutterwave|wise|adsense)\b[^.]{0,100}\b(?:payment|payout|paid|receive)\b/i, weight: 14 }
-  ], { requireDirect: true, rejectUnsupported: true });
+  ], {allowedKeys: ["money"],  requireDirect: true, rejectUnsupported: true });
 
   const withdrawalEvidence = findEvidence([
     { pattern: /\bpayment thresholds?\b/i, weight: 20 },
@@ -851,13 +852,13 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     { pattern: /\b(?:withdraw(?:al)?|payout|payment)\b[^.]{0,120}\b(?:threshold|minimum|limit)\b/i, weight: 15 },
     { pattern: /\b(?:withdraw(?:al)?|payout)\b[^.]{0,120}\b(?:weekly|monthly|daily|schedule|processing|processed)\b/i, weight: 13 },
     { pattern: /\b(?:once|after|when)\b[^.]{0,100}\b(?:reach|meet)\b[^.]{0,80}\b(?:threshold|minimum payout|payment threshold)\b/i, weight: 14 }
-  ], { requireDirect: true, rejectUnsupported: true });
+  ], {allowedKeys: ["money"],  requireDirect: true, rejectUnsupported: true });
 
   const startingCostEvidence = findEvidence([
     { pattern: /\b(?:free to (?:join|register|start)|no (?:upfront|registration|joining) fee|no upfront cost)\b/i, weight: 18 },
     { pattern: /\b(?:starting cost|cost to start|upfront cost|registration fee|joining fee|entry fee|subscription fee|deposit|investment required)\b/i, weight: 17 },
     { pattern: /\b(?:requires?|costs?|fee|fees|deposit|subscription)\b[^.]{0,100}(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s?[\d,]+/i, weight: 16 }
-  ], { requireDirect: true, rejectUnsupported: true, exclude: [/\b(?:camera|microphone|equipment|studio|software)\b/i] });
+  ], {allowedKeys: ["cost"],  requireDirect: true, rejectUnsupported: true, exclude: [/\b(?:camera|microphone|equipment|studio|software)\b/i] });
 
   const earningsEvidence = findEvidence([
     { pattern: /\b(?:earnings?|income|revenue)\b[^.]{0,160}\b(?:\$|€|£|₦|ngn|usd|per hour|per task|per project|per video|per view|rate|range|var(?:y|ies)|depends|not guaranteed|commission|share|advertising|ads?)\b/i, weight: 16 },
@@ -865,37 +866,36 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     { pattern: /\b(?:\$|€|£|₦|ngn|usd)\s?[\d,]+(?:\s?(?:per|\/)\s?(?:hour|task|project|video|view|month|day))?\b/i, weight: 12 },
     { pattern: /\b(?:pay|pays|paid)\b[^.]{0,120}\b(?:per task|per project|per hour|per video|per view|commission|rate)\b/i, weight: 13 },
     { pattern: /\b(?:earnings?|income)\b[^.]{0,140}\b(?:vary|varies|depends on|not guaranteed|fluctuate)\b/i, weight: 14 }
-  ], { requireDirect: true, rejectUnsupported: true });
+  ], {allowedKeys: ["money"],  requireDirect: true, rejectUnsupported: true });
 
   const timeToMoneyEvidence = findEvidence([
-    { pattern: /\b(?:first payment|first payout|first money|first earnings?|when (?:will|do) .* get paid|when .* receive payment|payment timeline|payout timeline|payment cycle)\b/i, weight: 18 },
-    { pattern: /\b(?:payment|payout)\b[^.]{0,140}\b(?:within|after|every|each|weekly|monthly|daily|\d+\s*(?:day|days|week|weeks|month|months))\b/i, weight: 16 },
-    { pattern: /\b(?:payment|payout)\b[^.]{0,100}\b(?:processing|processed)\b[^.]{0,80}\b(?:day|days|week|weeks)\b/i, weight: 14 }
-  ], { requireDirect: true, rejectUnsupported: true });
+    { pattern: /\b(?:first payment|first payout|first money|first earnings?|when (?:will|do) .* get paid|when .* receive payment|payment timeline|payout timeline)\b/i, weight: 18 },
+    { pattern: /\b(?:after|within|takes?|can take|typically takes)\b[^.]{0,120}\b(?:\d+\s*(?:day|days|week|weeks|month|months)|a few days|a few weeks|several weeks|approval|qualification|first sale|first client|first task)\b[^.]{0,100}\b(?:first payment|first payout|paid|earnings?|money)\b/i, weight: 18 }
+  ], {allowedKeys: ["money"],  requireDirect: true, rejectUnsupported: true });
 
   const availabilityEvidence = findEvidence([
     { pattern: /\b(?:current|currently|ongoing|active)\b[^.]{0,100}\b(?:projects?|tasks?|work|opportunities?|gigs?)\b[^.]{0,80}\b(?:available|open|active)\b/i, weight: 16 },
     { pattern: /\b(?:projects?|tasks?|work|opportunities?|gigs?)\b[^.]{0,100}\b(?:currently|now|available|availability|open|active)\b/i, weight: 15 },
     { pattern: /\b(?:waitlist|invite[- ]only|limited slots?|no longer accepting|applications? (?:open|closed))\b/i, weight: 15 }
-  ], { includeTitle: true, requireDirect: true, rejectUnsupported: true, exclude: [jobBoardNoise] });
+  ], {allowedKeys: ["status"],  includeTitle: true, requireDirect: true, rejectUnsupported: true, exclude: [jobBoardNoise] });
 
   const dataCostEvidence = findEvidence([
     { pattern: /\b(?:internet|mobile data|data connection|wifi|wi-fi|broadband|internet access)\b[^.]{0,120}\b(?:required|needed|necessary|uses?|cost|costs|fee|fees)\b/i, weight: 15 },
     { pattern: /\b(?:data|internet)\b[^.]{0,100}(?:\$|€|£|₦|ngn|naira)\s?[\d,]+/i, weight: 14 }
-  ], { requireDirect: true, rejectUnsupported: true });
+  ], {allowedKeys: ["cost"],  requireDirect: true, rejectUnsupported: true });
 
   const timeCostEvidence = findEvidence([
     { pattern: /\b(?:hours?|hrs?)\b[^.]{0,100}\b(?:per day|a day|daily|per week|a week|weekly)\b/i, weight: 15 },
     { pattern: /\b(?:time commitment|time required|time needed|takes?)\b[^.]{0,120}\b(?:hours?|minutes?|days?|weeks?)\b/i, weight: 14 },
     { pattern: /\b(?:spend|dedicate|commit)\b[^.]{0,80}\b(?:hours?|time)\b/i, weight: 12 }
-  ], { requireDirect: true, rejectUnsupported: true });
+  ], {allowedKeys: ["cost"],  requireDirect: true, rejectUnsupported: true });
 
   const specificCatch = findEvidence([
     { pattern: /\b(?:mass[- ]produced|repetitive content|reused content|copied content|may be ineligible|not eligible for monetization)\b/i, weight: 20 },
     { pattern: /\b(?:not guaranteed|not available to everyone|limited|invite[- ]only|waitlist|project[- ]dependent|qualification|requires?|must have|minimum|threshold|competition|competitive)\b/i, weight: 9 },
     { pattern: /\b(?:earnings?|income)\b[^.]{0,140}\b(?:vary|varies|depends|not guaranteed)\b/i, weight: 11 },
     { pattern: /\b(?:fee|fees|commission|deposit|subscription|upfront cost)\b/i, weight: 8 }
-  ], { requireDirect: true, rejectUnsupported: true });
+  ], {allowedKeys: ["status","access","money"],  requireDirect: true, rejectUnsupported: true });
 
   const blockers = Array.isArray(assessment.blockers) ? assessment.blockers : [];
   const cautions = Array.isArray(assessment.cautions) ? assessment.cautions : [];
