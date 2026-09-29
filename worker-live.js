@@ -450,7 +450,7 @@ export function assessLiveEvidence({ name, claim, answer, sources, profile, url 
     ? buildResearchBreakdown({
         name,
         claim,
-        sources: relevantSources,
+        sources: relevantSources.map(source => ({ ...source, __identity: true })),
         profile,
         assessment: { blockers, cautions, unknowns: verdict === "NOT ENOUGH RELIABLE EVIDENCE" ? ["The evidence base is too thin or inconsistent to classify this opportunity responsibly."] : [] }
       })
@@ -737,7 +737,7 @@ export function buildResearchBreakdown({ name, claim, sources = [], profile = {}
     let host = "";
     try { host = new URL(url).hostname.toLowerCase().replace(/^www\./, ""); } catch {}
     const sourceIdentity = (title + " " + url + " " + raw).toLowerCase();
-    const sourceMatches = aliasTokens.some(alias =>
+    const sourceMatches = Boolean(source.__identity) || aliasTokens.some(alias =>
       sourceIdentity.includes(alias) ||
       sourceIdentity.replace(/[^a-z0-9]/g, "").includes(alias.replace(/[^a-z0-9]/g, ""))
     );
