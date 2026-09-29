@@ -570,7 +570,7 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
 
   let suppliedHost = "";
   try {
-    suppliedHost = url ? new URL(url).hostname.toLowerCase().replace(/^www\\./, "") : "";
+    suppliedHost = url ? new URL(url).hostname.toLowerCase().replace(/^www\./, "") : "";
   } catch {}
 
   const broadTerms = new Set([
@@ -596,8 +596,12 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
     !isKnownType &&
     broadTokenCount >= Math.max(1, Math.ceil(nameTokens.length / 2));
 
-  const normalize = value => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\\s+/g, " ").trim();
-  const compact = value => normalize(value).replace(/\\s+/g, "");
+  const normalize = value => String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const compact = value => normalize(value).replace(/\s+/g, "");
 
   const acceptedSources = new Set();
   const identityHits = [];
@@ -609,6 +613,8 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
     const exactInTitle = normalizedName && title.includes(normalizedName);
     const allNameTokensInTitle =
       nameTokens.length >= 2 && nameTokens.every(token => title.includes(token));
+    const meaningfulTokenInTitle =
+      nameTokens.some(token => token.length >= 5 && !broadTerms.has(token) && title.includes(token));
     const exactInHost =
       compact(normalizedName) && compact(host).includes(compact(normalizedName));
     const exactInContent =
@@ -617,32 +623,34 @@ function assessOpportunityIdentity({ name, claim = "", url = "", sources = [] })
       claimTokens.length >= 2 &&
       claimTokens.filter(token => content.includes(token) || title.includes(token)).length >= Math.min(3, claimTokens.length);
 
+    const genericDefinition = /(?:what is|what are|definition of|meaning of|types of|examples of|introduction to|explained|glossary|dictionary)/i.test(title);
+    const jobBoard = /(?:indeed|linkedin jobs|glassdoor|ziprecruiter|job board|job listings?|vacancies?|hiring for)/i.test(title);
+
     let score = 0;
     if (suppliedHost && source.host && (source.host === suppliedHost || source.host.endsWith("." + suppliedHost))) score += 8;
     if (exactInTitle) score += 7;
     if (allNameTokensInTitle) score += 5;
     if (exactInHost) score += 6;
     if (exactInContent) score += 2;
+    if (meaningfulTokenInTitle) score += isKnownType ? 4 : 1;
     if (claimOverlap) score += 3;
-
-    const genericDefinition = /(?:what is|what are|definition of|meaning of|types of|examples of|introduction to|explained|glossary|dictionary)/i.test(title);
     if (genericDefinition && !exactInTitle && !exactInHost && !suppliedHost) score -= 3;
+    if (jobBoard && !exactInTitle) score -= 5;
 
     if (ambiguousName) {
       // A vague label such as "AI product" is not an identifiable opportunity.
-      // Do not let generic definitions, unrelated companies, or adjacent tools
-      // become evidence merely because they contain the words the user typed.
+      // Generic definitions and adjacent companies must not become evidence.
       if (exactInTitle && !genericDefinition) score += 3;
       else score = 0;
     }
 
-    if (score >= 5) {
+    if (score >= 4) {
       acceptedSources.add(source.url);
       identityHits.push({ url: source.url, score });
     }
   }
 
-  const strongIdentitySources = identityHits.filter(hit => hit.score >= 7).length;
+  const strongIdentitySources = identityHits.filter(hit => hit.score >= 6).length;
   const confident =
     Boolean(suppliedHost) ||
     (!ambiguousName && strongIdentitySources >= 1 && identityHits.length >= 1) ||
