@@ -118,17 +118,30 @@ function sourceQuality(source, name) {
   return score;
 }
 
+function conflictSignal(texts) {
+  const text = texts.join(" ").toLowerCase();
+  const yes = /\\b(?:yes|available|supported|eligible|allowed|requires?|mandatory|must|need(?:s)?|accepts?)\\b/.test(text);
+  const no = /\\b(?:no|not available|unavailable|unsupported|ineligible|not allowed|optional|not required|does not require|cannot)\\b/.test(text);
+  return yes && no;
+}
+
+function hasMaterialSourceConflict(packet) {
+  const contents = (packet.sources || [])
+    .map(s => normalize(s.content))
+    .filter(Boolean);
+  if (contents.length < 2) return false;
+
+  // Conservative guard: if multiple field-scoped sources contain directly
+  // opposing requirement/access language, do not let a synthesized answer
+  // hide the disagreement. The field stays unresolved until evidence agrees.
+  return conflictSignal(contents);
+}
+
 function answerFromPacket(packet) {
   const answer = cleanAnswer(packet.answer);
-  if (answer !== NO_EVIDENCE) return answer;
-  const ranked = [...(packet.sources || [])]
-    .map(s => ({ s, score:sourceQuality(s, packet.name) }))
-    .sort((a,b)=>b.score-a.score);
-  for (const item of ranked) {
-    const text = cleanAnswer(item.s.content);
-    if (text !== NO_EVIDENCE) return text.slice(0,650);
-  }
-  return NO_EVIDENCE;
+  if (answer === NO_EVIDENCE) return NO_EVIDENCE;
+  if (hasMaterialSourceConflict(packet)) return NO_EVIDENCE;
+  return answer;
 }
 
 function hasEvidence(answer) {
@@ -317,6 +330,7 @@ export async function runFieldResearch({ env, name, claim, url, profile, contrac
     sources
   };
 
+  packet.answer = answerFromPacket(packet);
   return { packet, error:result.ok?null:result.detail };
 }
 
