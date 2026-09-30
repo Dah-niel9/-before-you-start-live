@@ -139,7 +139,7 @@ function answerScopeValid(packet) {
       reject: /\b(?:optional|not required|not necessary)\b.{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b/i
     },
     kyc: {
-      allowed: /\b(?:kyc|identity|id|passport|nin|verification|verify|address verification|government id|document)\b/i,
+      allowed: /\b(?:kyc|identity|id|passport|nin|government id|document|address verification)\b/i,
       neighborOnly: /\b(?:two[- ]step|2fa|two factor|login security|authenticator|verification code)\b/i
     },
     payment: {
