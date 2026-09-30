@@ -120,8 +120,8 @@ function sourceQuality(source, name) {
 
 function conflictSignal(texts) {
   const text = texts.join(" ").toLowerCase();
-  const yes = /\\b(?:yes|available|supported|eligible|allowed|requires?|mandatory|must|need(?:s)?|accepts?)\\b/.test(text);
-  const no = /\\b(?:no|not available|unavailable|unsupported|ineligible|not allowed|optional|not required|does not require|cannot)\\b/.test(text);
+  const yes = /\b(?:yes|available|supported|eligible|allowed|required|requires?|mandatory|must|need(?:s)?|accepts?)\b/.test(text);
+  const no = /\b(?:no|not available|unavailable|unsupported|ineligible|not allowed|optional|not required|does not require|cannot)\b/.test(text);
   return yes && no;
 }
 
