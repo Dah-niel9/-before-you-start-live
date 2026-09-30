@@ -125,6 +125,65 @@ function conflictSignal(texts) {
   return yes && no;
 }
 
+function answerScopeValid(packet) {
+  const text = normalize(packet.answer).toLowerCase();
+  if (!text || text === NO_EVIDENCE.toLowerCase()) return false;
+
+  const rules = {
+    nigeriaAccess: {
+      allowed: /\b(?:nigeria|country|available|availability|eligible|eligibility|supported|access|participate|geographic|region|restricted|restriction)\b/i,
+      neighborOnly: /\b(?:kyc|identity|id|passport|nin|verification|government id)\b/i
+    },
+    startingCost: {
+      allowed: /\b(?:cost|fee|price|subscription|deposit|registration|pay|payment|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
+      reject: /\b(?:optional|not required|not necessary)\b.{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b/i
+    },
+    kyc: {
+      allowed: /\b(?:kyc|identity|id|passport|nin|verification|verify|address verification|government id|document)\b/i,
+      neighborOnly: /\b(?:two[- ]step|2fa|two factor|login security|authenticator|verification code)\b/i
+    },
+    payment: {
+      allowed: /\b(?:payment|payout|paid|pay|bank transfer|paypal|adsense|wallet|wire|method|receive money)\b/i,
+      neighborOnly: /\b(?:withdrawal|withdraw|minimum threshold|processing time|monthly schedule|payment cycle)\b/i
+    },
+    withdrawal: {
+      allowed: /\b(?:withdraw|withdrawal|threshold|minimum|processing|payout|receive|schedule|days|business days)\b/i,
+      neighborOnly: /\b(?:paypal|bank transfer|adsense|wallet|wire)\b/i
+    },
+    availability: {
+      allowed: /\b(?:available|availability|accepting|open|active|operating|tasks|projects|work|participants|access|invite|waitlist)\b/i,
+      neighborOnly: /\b(?:indeed|job listing|job listings|related jobs|vacancies)\b/i
+    },
+    earnings: {
+      allowed: /\b(?:earn|earning|earnings|pay rate|rate|commission|revenue share|per task|per project|income|paid)\b/i,
+      neighborOnly: /\b(?:platform revenue|company revenue|customer spending|customers spend|market size|annual revenue)\b/i
+    },
+    firstMoney: {
+      allowed: /\b(?:first payment|first payout|first money|first sale|first client|first task|approval|threshold|processing|days|weeks|time)\b/i,
+      neighborOnly: /\b(?:monthly payment|monthly payments|payment cycle|paid monthly)\b/i
+    },
+    realCash: {
+      allowed: /\b(?:cash|cost|fee|price|subscription|deposit|registration|pay|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
+      reject: /\b(?:optional|not required|not necessary)\b.{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b/i
+    },
+    realData: {
+      allowed: /\b(?:data|internet|bandwidth|upload|download|stream|connectivity|mb|gb|wifi)\b/i
+    },
+    realTime: {
+      allowed: /\b(?:hour|hours|time|daily|weekly|monthly|per task|per project|workload|commitment)\b/i
+    },
+    realOpportunity: {
+      allowed: /\b(?:tradeoff|trade-off|opportunity cost|give up|instead|alternative|forego|foregoes|lost time)\b/i
+    }
+  };
+
+  const rule = rules[packet.key];
+  if (!rule) return true;
+  if (rule.reject && rule.reject.test(text)) return false;
+  if (rule.neighborOnly && rule.neighborOnly.test(text) && !rule.allowed.test(text)) return false;
+  return !!rule.allowed.test(text);
+}
+
 function hasMaterialSourceConflict(packet) {
   const contents = (packet.sources || [])
     .map(s => normalize(s.content))
@@ -141,6 +200,12 @@ function answerFromPacket(packet) {
   const answer = cleanAnswer(packet.answer);
   if (answer === NO_EVIDENCE) return NO_EVIDENCE;
   if (hasMaterialSourceConflict(packet)) return NO_EVIDENCE;
+
+  // The search model can occasionally answer a neighboring field even when
+  // the prompt asks for one exact field. Reject answers that fail the field's
+  // own scope checks instead of allowing cross-field contamination downstream.
+  if (!answerScopeValid({...packet, answer})) return NO_EVIDENCE;
+
   return answer;
 }
 
