@@ -170,10 +170,19 @@ function answerScopeValid(packet) {
       allowed: /\b(?:data|internet|bandwidth|upload|download|stream|connectivity|mb|gb|wifi)\b/i
     },
     realTime: {
-      allowed: /\b(?:hour|hours|time|daily|weekly|monthly|per task|per project|workload|commitment)\b/i
+      allowed: /\b(?:hour|hours|time|daily|weekly|per task|per project|workload|commitment|schedule|frequency)\b/i,
+      neighborOnly: /\b(?:payment|payout|paid|withdrawal|withdraw|monthly payment|payment cycle)\b/i
     },
     realOpportunity: {
       allowed: /\b(?:tradeoff|trade-off|opportunity cost|give up|instead|alternative|forego|foregoes|lost time)\b/i
+    },
+    checkLegitimacy: {
+      allowed: /\b(?:legitimate|legitimacy|operator|official|company|platform|warning|complaint|fraud|scam|verification|established|regulator|regulatory)\b/i,
+      neighborOnly: /\b(?:earnings|pay rate|per task|withdrawal|payment method)\b/i
+    },
+    checkAccessibility: {
+      allowed: /\b(?:nigeria|available|access|eligible|device|laptop|computer|phone|id|passport|nin|kyc|qualification|requirement|participate)\b/i,
+      neighborOnly: /\b(?:earnings|pay rate|per task|revenue|withdrawal|payment method)\b/i
     }
   };
 
