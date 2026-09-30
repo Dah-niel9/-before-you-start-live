@@ -189,7 +189,10 @@ function answerScopeValid(packet) {
   const rule = rules[packet.key];
   if (!rule) return true;
   if (rule.reject && rule.reject.test(text)) return false;
-  if (rule.neighborOnly && rule.neighborOnly.test(text) && !rule.allowed.test(text)) return false;
+  // Field answers must stay isolated. If an answer contains a term that
+  // belongs specifically to a neighboring field, reject it instead of
+  // allowing one mixed sentence to satisfy this field by keyword overlap.
+  if (rule.neighborOnly && rule.neighborOnly.test(text)) return false;
   return !!rule.allowed.test(text);
 }
 
