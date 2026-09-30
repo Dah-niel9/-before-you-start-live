@@ -301,6 +301,12 @@ export async function runFieldResearch({ env, name, claim, url, profile, contrac
   const query = fieldPrompt(name,claim,url,contract,profile);
   const result = await tavilySearch(env,query);
   const data = result.data || {};
+  const sources = (Array.isArray(data.results)?data.results:[])
+    .map(x=>normalizeSource(x,contract.key)).filter(Boolean);
+
+  // Field answers must never be copied from raw source content.
+  // Tavily's synthesized answer is used only when it exists; otherwise this
+  // field remains explicitly unknown rather than borrowing neighboring facts.
   const packet = {
     key:contract.key,
     name,
@@ -308,12 +314,9 @@ export async function runFieldResearch({ env, name, claim, url, profile, contrac
     extract:contract.extract,
     ok:result.ok,
     answer:cleanAnswer(data.answer),
-    sources:(Array.isArray(data.results)?data.results:[]).map(x=>normalizeSource(x,contract.key)).filter(Boolean)
+    sources
   };
-  if (packet.answer === NO_EVIDENCE && packet.sources.length) {
-    const ranked=[...packet.sources].sort((a,b)=>sourceQuality(b,name)-sourceQuality(a,name));
-    packet.answer=cleanAnswer(ranked[0]?.content);
-  }
+
   return { packet, error:result.ok?null:result.detail };
 }
 
