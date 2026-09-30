@@ -144,7 +144,7 @@ function answerScopeValid(packet) {
     },
     payment: {
       allowed: /\b(?:payment|payout|paid|pay|bank transfer|paypal|adsense|wallet|wire|method|receive money)\b/i,
-      neighborOnly: /\b(?:withdrawal|withdraw|minimum threshold|processing time|monthly schedule|payment cycle)\b/i
+      neighborOnly: /\b(?:withdrawal|withdraw|minimum threshold|processing time|monthly(?:\s+payments?)?\s+schedule|payment cycle)\b/i
     },
     withdrawal: {
       allowed: /\b(?:withdraw|withdrawal|threshold|minimum|processing|payout|receive|schedule|days|business days)\b/i,
@@ -171,7 +171,7 @@ function answerScopeValid(packet) {
     },
     realTime: {
       allowed: /\b(?:hour|hours|time|daily|weekly|per task|per project|workload|commitment|schedule|frequency)\b/i,
-      neighborOnly: /\b(?:payment|payout|paid|withdrawal|withdraw|monthly payment|payment cycle)\b/i
+      neighborOnly: /\b(?:payment|payments|payout|payouts|paid|withdrawal|withdraw|monthly payments?|payment cycle)\b/i
     },
     realOpportunity: {
       allowed: /\b(?:tradeoff|trade-off|opportunity cost|give up|instead|alternative|forego|foregoes|lost time)\b/i
