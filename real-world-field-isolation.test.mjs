@@ -55,7 +55,7 @@ const contaminated = {
   device: "A laptop is required and bank transfer is used for payment."
 };
 
-assert.equal(FIELD_CONTRACTS.length, 22, "Expected 23 production field contracts");
+assert.equal(FIELD_CONTRACTS.length, 22, "Expected 22 production field contracts");
 
 const results = [];
 let contaminatedRejected = 0;
@@ -93,4 +93,4 @@ console.log(JSON.stringify({
 }, null, 2));
 
 assert.equal(contaminatedRejected, Object.keys(contaminated).length, "Every deliberately contaminated field answer must be rejected");
-console.log(`REAL-WORLD FIELD ISOLATION PASSED: ${results.length}/23 own-field answers accepted; ${contaminatedRejected}/${Object.keys(contaminated).length} contaminated answers rejected.`);
+console.log(`REAL-WORLD FIELD ISOLATION PASSED: ${results.length}/22 own-field answers accepted; ${contaminatedRejected}/${Object.keys(contaminated).length} contaminated answers rejected.`);
