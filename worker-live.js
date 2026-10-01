@@ -267,7 +267,7 @@ function answerScopeValid(packet) {
     },
     firstMoney: {
       allowed: /\b(?:first payment|first payout|first money|first sale|first client|first task|approval|threshold|processing|days|weeks|time)\b/i,
-      neighborOnly: /\b(?:monthly payment|monthly payments|payment cycle|paid monthly)\b/i
+      neighborOnly: /\b(?:monthly payment|monthly payments|payment cycle|paid monthly|payments? (?:are|is) monthly)\b/i
     },
     realCash: {
       allowed: /\b(?:cash|cost|fee|price|subscription|deposit|registration|pay|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
@@ -278,7 +278,7 @@ function answerScopeValid(packet) {
     },
     realTime: {
       allowed: /\b(?:hour|hours|time|daily|weekly|per task|per project|workload|commitment|schedule|frequency)\b/i,
-      neighborOnly: /\b(?:payment|payments|payout|payouts|paid|withdrawal|withdraw|monthly payments?|payment cycle)\b/i
+      neighborOnly: /\b(?:payment|payments|payout|payouts|paid|withdrawal|withdraw|monthly payments?|payment cycle|payments? (?:are|is) monthly)\b/i
     },
     realOpportunity: {
       allowed: /\b(?:tradeoff|trade-off|opportunity cost|give up|instead|alternative|forego|foregoes|lost time)\b/i
