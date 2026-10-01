@@ -17,3 +17,4 @@ jobs:
         env:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: node full-research-pipeline.test.mjs
+# trigger full pipeline
