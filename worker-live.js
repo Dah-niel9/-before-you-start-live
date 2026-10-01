@@ -118,11 +118,118 @@ function sourceQuality(source, name) {
   return score;
 }
 
-function conflictSignal(texts) {
-  const text = texts.join(" ").toLowerCase();
-  const yes = /\b(?:yes|available|supported|eligible|allowed|required|requires?|mandatory|must|need(?:s)?|accepts?)\b/.test(text);
-  const no = /\b(?:no|not available|unavailable|unsupported|ineligible|not allowed|optional|not required|does not require|cannot)\b/.test(text);
-  return yes && no;
+const FIELD_CONFLICT_RULES = {
+  nigeriaAccess: {
+    relevant: /\b(?:nigeria|country|region|geographic|eligible|eligibility|access|participat|supported|available|restricted|excluded)\b/i,
+    positive: /\b(?:supported|available|eligible|allowed|can participate|open to (?:users|workers|participants))\b/i,
+    negative: /\b(?:not supported|unsupported|not available|unavailable|ineligible|not allowed|cannot participate|restricted|excluded)\b/i
+  },
+  availability: {
+    relevant: /\b(?:currently|currently operating|accepting|open|active|operating|tasks|projects|participants|access|invite|waitlist|available)\b/i,
+    positive: /\b(?:currently operating|accepting (?:users|workers|participants)|open|active|operating|available|accepts? (?:users|workers|participants))\b/i,
+    negative: /\b(?:closed|not available|unavailable|not accepting|no longer operating|inactive|waitlist only|invite only)\b/i
+  },
+  device: {
+    relevant: /\b(?:laptop|computer|desktop|phone|mobile|device|browser|software|operating system|windows|macos|android|ios)\b/i,
+    positive: /\b(?:requires?|must have|need(?:s)?|only works on|works on|available on)\b[^.!?]{0,120}\b(?:laptop|computer|desktop|phone|mobile|device|browser|software|windows|macos|android|ios)\b/i,
+    negative: /\b(?:does not require|do not need|not required|optional|no need for|works without)\b[^.!?]{0,120}\b(?:laptop|computer|desktop|phone|mobile|device|browser|software)\b/i
+  },
+  kyc: {
+    relevant: /\b(?:kyc|identity|id|passport|nin|government id|identity verification|address verification|document)\b/i,
+    positive: /\b(?:requires?|must provide|need(?:s)?|requires? verification|identity verification required|government id required|passport required|nin required)\b[^.!?]{0,120}\b(?:kyc|identity|id|passport|nin|government id|document|verification)\b/i,
+    negative: /\b(?:no kyc|kyc not required|not required|does not require|do not need|no need for|optional)\b[^.!?]{0,120}\b(?:kyc|identity|id|passport|nin|government id|document|verification)\b/i
+  },
+  payment: {
+    relevant: /\b(?:payment|payout|paid|pay|bank transfer|paypal|adsense|wallet|wire|method|receive money)\b/i,
+    positive: /\b(?:paid|payouts?|payments?|receive(?:s)? money|pay(?:out)? via|payment method)\b[^.!?]{0,120}\b(?:bank transfer|paypal|adsense|wallet|wire|payment|payout|money)\b/i,
+    negative: /\b(?:does not pay|do not pay|no payout|no payment|cannot receive|not paid|does not support|unsupported)\b[^.!?]{0,120}\b(?:bank transfer|paypal|adsense|wallet|wire|payment|payout|money)\b/i
+  },
+  withdrawal: {
+    relevant: /\b(?:withdraw|withdrawal|threshold|minimum|processing|payout|receive|schedule|days|business days)\b/i,
+    positive: /\b(?:withdraw|withdrawal|minimum threshold|payout|receive|processing|payment schedule)\b/i,
+    negative: /\b(?:cannot withdraw|no withdrawal|withdrawal not available|no payout|cannot receive|not eligible for withdrawal)\b/i
+  },
+  startingCost: {
+    relevant: /\b(?:cost|fee|price|subscription|deposit|registration|pay|payment|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
+    positive: /\b(?:requires?|must pay|mandatory|registration fee|subscription fee|deposit|upfront fee|costs?|charges?)\b[^.!?]{0,100}(?:\b(?:₦|ngn|naira|usd|\$|€|£)\b|\$|€|£|\d)/i,
+    negative: /\b(?:no fee|no cost|free to (?:join|start)|no registration fee|not required|does not require|no deposit|optional)\b/i
+  },
+  earnings: {
+    relevant: /\b(?:earn|earning|earnings|pay rate|rate|commission|revenue share|per task|per project|income|paid)\b/i,
+    positive: /\b(?:earn(?:s|ing|ings)?|pay rate|rate|commission|revenue share|per task|per project|income|paid)\b/i,
+    negative: /\b(?:no earnings|no pay|unpaid|does not pay|cannot earn|not paid)\b/i
+  },
+  firstMoney: {
+    relevant: /\b(?:first payment|first payout|first money|first sale|first client|first task|approval|threshold|processing|days|weeks|time)\b/i,
+    positive: /\b(?:first payment|first payout|first money|first sale|first client|first task|approval|processing time|within \d+ (?:days|weeks))\b/i,
+    negative: /\b(?:no first payment|cannot receive first payment|no payout|not paid|cannot get paid)\b/i
+  },
+  legitimacy: {
+    relevant: /\b(?:legitimate|legitimacy|operator|official|company|platform|warning|complaint|fraud|scam|verification|established|regulator|regulatory)\b/i,
+    positive: /\b(?:legitimate|established|official|verified|regulated|authorized)\b/i,
+    negative: /\b(?:scam|fraud|fake|phishing|official warning|regulatory action|unauthorized)\b/i
+  },
+  dataCost: {
+    relevant: /\b(?:data|internet|bandwidth|upload|download|stream|connectivity|mb|gb|wifi)\b/i,
+    positive: /\b(?:requires?|uses?|needs?|data|internet|bandwidth|upload|download|stream)\b/i,
+    negative: /\b(?:no internet|no data|does not require internet|works offline|offline)\b/i
+  },
+  timeCost: {
+    relevant: /\b(?:hour|hours|time|daily|weekly|per task|per project|workload|commitment|schedule|frequency)\b/i,
+    positive: /\b(?:requires?|takes?|hours?|daily|weekly|per task|per project|workload|commitment)\b/i,
+    negative: /\b(?:no time|does not require time|minimal time|no ongoing commitment)\b/i
+  },
+  realCash: {
+    relevant: /\b(?:cash|cost|fee|price|subscription|deposit|registration|pay|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
+    positive: /\b(?:requires?|must pay|mandatory|registration fee|subscription fee|deposit|upfront fee|costs?|charges?)\b/i,
+    negative: /\b(?:no fee|no cost|free to (?:join|start)|no registration fee|not required|does not require|no deposit|optional)\b/i
+  },
+  realData: {
+    relevant: /\b(?:data|internet|bandwidth|upload|download|stream|connectivity|mb|gb|wifi)\b/i,
+    positive: /\b(?:requires?|uses?|needs?|data|internet|bandwidth|upload|download|stream)\b/i,
+    negative: /\b(?:no internet|no data|does not require internet|works offline|offline)\b/i
+  },
+  realTime: {
+    relevant: /\b(?:hour|hours|time|daily|weekly|per task|per project|workload|commitment|schedule|frequency)\b/i,
+    positive: /\b(?:requires?|takes?|hours?|daily|weekly|per task|per project|workload|commitment)\b/i,
+    negative: /\b(?:no time|does not require time|minimal time|no ongoing commitment)\b/i
+  }
+};
+
+function splitEvidenceSentences(text) {
+  return normalize(text)
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map(s => normalize(s))
+    .filter(Boolean);
+}
+
+function sentencePolarity(sentence, rule) {
+  if (!rule.relevant.test(sentence)) return null;
+  const positive = rule.positive.test(sentence);
+  const negative = rule.negative.test(sentence);
+  if (positive === negative) return null;
+  return negative ? "negative" : "positive";
+}
+
+function hasMaterialSourceConflict(packet) {
+  const rule = FIELD_CONFLICT_RULES[packet.key];
+  const sources = (packet.sources || []).filter(s => normalize(s.content));
+  if (!rule || sources.length < 2) return false;
+
+  const evidence = [];
+  for (const source of sources) {
+    for (const sentence of splitEvidenceSentences(source.content)) {
+      const polarity = sentencePolarity(sentence, rule);
+      if (polarity) evidence.push({ source:source.url, polarity, sentence });
+    }
+  }
+
+  // A field conflict requires opposite field-specific evidence from different
+  // sources. Unrelated positive/negative words elsewhere in mixed evidence do
+  // not count as a conflict.
+  const positiveSources = new Set(evidence.filter(x => x.polarity === "positive").map(x => x.source));
+  const negativeSources = new Set(evidence.filter(x => x.polarity === "negative").map(x => x.source));
+  return [...positiveSources].some(url => [...negativeSources].some(other => other !== url));
 }
 
 function answerScopeValid(packet) {
