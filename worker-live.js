@@ -251,7 +251,7 @@ function answerScopeValid(packet) {
     },
     kyc: {
       allowed: /\b(?:kyc|identity|id|passport|nin|government id|document|address verification)\b/i,
-      neighborOnly: /\b(?:two[- ]step|2fa|two factor|login security|authenticator|verification code|payment|payout|bank transfer|paypal|adsense|wallet|withdrawal|withdraw)\b/i
+      neighborOnly: /\b(?:two[- ]step|2fa|two factor|login security|authenticator|verification code|bank transfer|paypal|wallet|wire transfer|withdrawal threshold|minimum withdrawal)\b/i
     },
     payment: {
       allowed: /\b(?:payment|payout|paid|pay|bank transfer|paypal|adsense|wallet|wire|method|receive money)\b/i,
