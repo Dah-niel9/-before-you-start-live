@@ -118,7 +118,7 @@ assert.equal(
 const workerText = source;
 const expectedKeys = ["opportunity","workType","nigeriaAccess","availability","device","kyc","payment","withdrawal","startingCost","earnings","firstMoney","legitimacy","dataCost","timeCost","opportunityCost","checkLegitimacy","checkAccessibility","checkWorthwhile","realCash","realData","realTime","realOpportunity"];
 for (const key of expectedKeys) {
-  assert.match(workerText, new RegExp("key:\s*["']"+key+"["']"), "Missing field contract: "+key);
+  assert.ok(workerText.includes(`key:"${key}"`), "Missing field contract: "+key);
 }
 
 // The old unsafe raw-source fallback must not exist.
