@@ -1,0 +1,19 @@
+name: Full Research Pipeline
+
+on:
+  push:
+    branches: ["architecture-research-v1"]
+  workflow_dispatch:
+
+jobs:
+  youtube-automation-full-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run full YouTube Automation research pipeline
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: node full-research-pipeline.test.mjs
