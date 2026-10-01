@@ -1,0 +1,19 @@
+name: Real World Field Isolation
+
+on:
+  push:
+    branches: ["architecture-research-v1"]
+  workflow_dispatch:
+
+jobs:
+  youtube-automation-field-isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run real-world YouTube Automation isolation test
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: node real-world-field-isolation.test.mjs
