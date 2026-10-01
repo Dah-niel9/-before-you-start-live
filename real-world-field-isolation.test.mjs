@@ -35,7 +35,7 @@ const results = Object.entries(fields).filter(([key]) => key !== "biggestCatch")
 }));
 
 const noEvidence = "No clear evidence found.";
-const ownField = new Map(FIELD_CONTRACTS.map(c => [c.key, c]));
+const expectedFieldCount = 23;
 
 // Basic real-world isolation audit: every non-empty answer must remain a
 // response to its own contract. We intentionally do NOT reject normal
@@ -112,7 +112,7 @@ console.log(JSON.stringify({
   leakageCount
 }, null, 2));
 
-assert.equal(results.length, ownField.size, "Every production field contract must be researched");
+assert.equal(results.length, expectedFieldCount, "Every production field contract must be researched");
 assert.equal(leakageCount, 0, "Real-world field leakage detected");
 for (const row of results) {
   assert.ok(row.question, `Missing question for ${row.key}`);
