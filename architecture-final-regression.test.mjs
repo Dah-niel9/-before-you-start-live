@@ -27,7 +27,7 @@ const mixedSources = [
 ];
 
 const correct = [
-  ["opportunity","The person completes online tasks for the opportunity."],
+  ["opportunity","The person performs work for this opportunity."],
   ["workType","This is an online task-based earning activity."],
   ["nigeriaAccess","The opportunity is available to participants in Nigeria."],
   ["availability","The opportunity is currently operating and available."],
