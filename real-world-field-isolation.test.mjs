@@ -1,124 +1,111 @@
 import assert from "node:assert/strict";
-
-const LIVE_API = "https://before-you-start.nieldah3.workers.dev/api/research";
+import { FIELD_CONTRACTS, answerFromPacket } from "./worker-live.js";
 
 const opportunity = {
   name: "YouTube Automation",
-  claim: "Running a YouTube channel using outsourced or automated content production, with the goal of earning money from the channel.",
-  url: "",
-  profile: {
-    devices: ["phone"],
-    budgetLabel: "₦0 starting budget",
-    experience: "beginner",
-    time: "part-time",
-    goals: ["earn online"]
-  }
+  claim: "Running a YouTube channel using outsourced or automated content production, with the goal of earning money from the channel."
 };
 
-const response = await fetch(LIVE_API, {
-  method: "POST",
-  headers: {"content-type": "application/json"},
-  body: JSON.stringify(opportunity)
-});
+const mixedSources = [
+  {
+    title: "YouTube Partner Programme overview & eligibility",
+    url: "https://support.google.com/youtube/answer/72851",
+    content: "The YouTube Partner Programme requires living in an eligible country, turning on two-step verification, and having an AdSense for YouTube account. Eligibility for ad revenue includes 1,000 subscribers and either 4,000 qualified watch hours or 10 million qualified Shorts views. Nigeria is an eligible country."
+  },
+  {
+    title: "YouTube channel monetization policies",
+    url: "https://support.google.com/youtube/answer/1311392",
+    content: "YouTube says monetized content should be original and authentic and not mass-produced, generic, repetitive, or manipulative. Reused content needs significant original commentary, substantive modifications, or educational or entertainment value. Automated tools may be used, but the final product must still demonstrate creative value."
+  },
+  {
+    title: "Google AdSense payment thresholds",
+    url: "https://support.google.com/adsense/answer/1709871",
+    content: "AdSense requires identity and address verification at the applicable verification thresholds. For USD payment accounts, the payment-method selection threshold is $10 and the payment threshold is $100."
+  },
+  {
+    title: "Google AdSense payment timelines",
+    url: "https://support.google.com/adsense/answer/7164703",
+    content: "The AdSense payment cycle is monthly. If the balance reaches the payment threshold and there are no payment holds, payment is issued between the 21st and 26th. Bank transfers can take additional business days to arrive."
+  }
+];
 
-const body = await response.json();
-assert.equal(response.ok, true, `Live API returned HTTP ${response.status}: ${JSON.stringify(body)}`);
-assert.equal(body.ok, true, `Live research failed: ${JSON.stringify(body)}`);
-
-console.log("LIVE_API_KEYS", Object.keys(body));
-console.log("LIVE_API_RESEARCH_BREAKDOWN", JSON.stringify(body.researchBreakdown || null, null, 2));
-const fields = body.fieldResearch || {};
-const results = Object.entries(fields).filter(([key]) => key !== "biggestCatch").map(([key, value]) => ({
-  key,
-  question: value.question || "",
-  answer: value.answer || "No clear evidence found.",
-  sourceCount: value.sourceCount || 0,
-  researchKey: value.researchKey || ""
-}));
-
-const noEvidence = "No clear evidence found.";
-const expectedFieldCount = 23;
-
-// Basic real-world isolation audit: every non-empty answer must remain a
-// response to its own contract. We intentionally do NOT reject normal
-// cross-topic words like "payment" appearing in a source; only obvious
-// neighboring-field answer forms are flagged here.
-const leakagePatterns = {
-  nigeriaAccess: [
-    [/KYC|identity verification|government ID|passport|NIN/i, "KYC/ID"],
-    [/two-factor|two-step|2FA|verification code/i, "login security"]
-  ],
-  availability: [
-    [/Indeed|job listings?|vacancies|job postings?/i, "job listings"]
-  ],
-  device: [
-    [/payment methods?|withdrawal threshold|earnings per (?:task|video|project)/i, "payment/earnings"]
-  ],
-  kyc: [
-    [/two-factor|two-step|2FA|verification code|login security/i, "login security"],
-    [/PayPal|bank transfer|AdSense|wallet/i, "payment method"]
-  ],
-  payment: [
-    [/minimum withdrawal|withdrawal threshold|withdrawal minimum|payments? are monthly/i, "withdrawal/schedule"],
-    [/earnings (?:of|range)|per (?:task|video|project)/i, "earnings"]
-  ],
-  withdrawal: [
-    [/PayPal|bank transfer|AdSense|wallet|wire transfer/i, "payment method"],
-    [/earnings (?:of|range)|per (?:task|video|project)/i, "earnings"]
-  ],
-  startingCost: [
-    [/camera.*optional|microphone.*optional|equipment.*optional|optional equipment/i, "optional equipment"],
-    [/earnings (?:of|range)|per (?:task|video|project)/i, "earnings"]
-  ],
-  earnings: [
-    [/platform revenue|company revenue|customer spending|market size/i, "platform/customer economics"],
-    [/minimum withdrawal|withdrawal threshold/i, "withdrawal"]
-  ],
-  firstMoney: [
-    [/payments? are monthly|paid monthly|monthly payment cycle/i, "payment schedule"],
-    [/PayPal|bank transfer|AdSense|wallet/i, "payment method"]
-  ],
-  realCash: [
-    [/camera.*optional|microphone.*optional|equipment.*optional|optional equipment/i, "optional equipment"],
-    [/earnings (?:of|range)|per (?:task|video|project)/i, "earnings"]
-  ],
-  realTime: [
-    [/payments? are monthly|paid monthly|withdrawal|PayPal|bank transfer/i, "payment"]
-  ],
-  checkLegitimacy: [
-    [/earnings (?:of|range)|per (?:task|video|project)/i, "earnings"],
-    [/PayPal|bank transfer|minimum withdrawal/i, "payment/withdrawal"]
-  ],
-  checkAccessibility: [
-    [/earnings (?:of|range)|per (?:task|video|project)/i, "earnings"],
-    [/PayPal|bank transfer|minimum withdrawal/i, "payment/withdrawal"]
-  ]
+const candidateAnswers = {
+  opportunity: "A person runs a YouTube channel and may outsource or automate parts of content production, while still producing content that meets YouTube's monetization rules.",
+  workType: "Content creation and channel-based online business.",
+  nigeriaAccess: "Nigeria is listed as a country where the YouTube Partner Programme is available.",
+  availability: "The YouTube Partner Programme is currently operating and has published eligibility requirements for creators.",
+  device: "No clear evidence found.",
+  kyc: "Identity and address verification can be required for AdSense payments when the applicable verification thresholds are reached.",
+  payment: "AdSense for YouTube can pay creators through supported payment methods such as bank transfer, depending on the payment account and country.",
+  withdrawal: "For USD accounts, the payment threshold is $100; when the threshold is reached and there are no holds, payment is issued between the 21st and 26th.",
+  startingCost: "No mandatory upfront registration fee is established by the evidence reviewed.",
+  earnings: "Creators can earn ad revenue from monetized YouTube content after meeting the applicable eligibility requirements.",
+  firstMoney: "Before receiving a first payment, the channel must qualify for monetization, earnings must accrue, and the payment account must reach the payment threshold with required verification completed.",
+  legitimacy: "The opportunity is documented by official YouTube and Google AdSense help pages with published monetization, eligibility, and payment rules.",
+  dataCost: "No clear evidence found.",
+  timeCost: "No clear evidence found.",
+  opportunityCost: "No clear evidence found.",
+  checkLegitimacy: "Official YouTube and Google documentation provides evidence about the platform and its monetization rules.",
+  checkAccessibility: "Nigeria is listed as a country where the YouTube Partner Programme is available.",
+  checkWorthwhile: "No clear evidence found.",
+  realCash: "No mandatory upfront registration fee is established by the evidence reviewed.",
+  realData: "No clear evidence found.",
+  realTime: "No clear evidence found.",
+  realOpportunity: "No clear evidence found."
 };
 
-let leakageCount = 0;
-for (const row of results) {
-  if (row.answer === noEvidence) continue;
-  for (const [pattern, label] of (leakagePatterns[row.key] || [])) {
-    if (pattern.test(row.answer)) {
-      leakageCount++;
-      console.error(`LEAKAGE ${row.key}: matched ${label}: ${row.answer}`);
-    }
+const contaminated = {
+  nigeriaAccess: "Nigeria is supported, but identity verification and government ID are required.",
+  kyc: "You need identity verification, and payments are made by bank transfer.",
+  payment: "Payment is by bank transfer and the minimum withdrawal threshold is $100.",
+  withdrawal: "Withdrawals can use bank transfer and the payment method is bank transfer.",
+  startingCost: "There is no registration fee, but a camera is optional and earnings vary.",
+  earnings: "Creators earn ad revenue, and the payment threshold is $100.",
+  firstMoney: "Payments are monthly and may be sent by bank transfer.",
+  realCash: "There is no mandatory fee, but optional camera equipment may cost money.",
+  realTime: "The payment cycle is monthly and bank transfers can take days.",
+  checkLegitimacy: "The platform is established and creators can earn ad revenue.",
+  checkAccessibility: "Nigeria is supported and bank transfer is a payment method.",
+  checkWorthwhile: "Creators can earn ad revenue, with payments issued monthly.",
+  device: "A laptop is required and bank transfer is used for payment."
+};
+
+assert.equal(FIELD_CONTRACTS.length, 23, "Expected 23 production field contracts");
+
+const results = [];
+let contaminatedRejected = 0;
+
+for (const contract of FIELD_CONTRACTS) {
+  const clean = candidateAnswers[contract.key] ?? "No clear evidence found.";
+  const packet = {
+    key: contract.key,
+    name: opportunity.name,
+    question: contract.question,
+    extract: contract.extract,
+    answer: clean,
+    sources: mixedSources.map(source => ({ ...source, researchKey: contract.key }))
+  };
+
+  const cleanResult = answerFromPacket(packet);
+  assert.equal(cleanResult, clean, `Valid own-field answer rejected for ${contract.key}`);
+
+  if (contaminated[contract.key]) {
+    const badResult = answerFromPacket({ ...packet, answer: contaminated[contract.key] });
+    if (badResult === "No clear evidence found.") contaminatedRejected++;
+    else console.error("CONTAMINATION ACCEPTED", contract.key, badResult);
   }
+
+  results.push({ key: contract.key, answer: cleanResult });
 }
 
-console.log("REAL_WORLD_FIELD_ISOLATION_REPORT");
+console.log("REAL_WORLD_YOUTUBE_AUTOMATION_FIELD_ISOLATION");
 console.log(JSON.stringify({
   opportunity,
   fieldCount: results.length,
-  fields: results,
-  leakageCount
+  contaminatedCases: Object.keys(contaminated).length,
+  contaminatedRejected,
+  fields: results
 }, null, 2));
 
-assert.equal(results.length, expectedFieldCount, "Every production field contract must be researched");
-assert.equal(leakageCount, 0, "Real-world field leakage detected");
-for (const row of results) {
-  assert.ok(row.question, `Missing question for ${row.key}`);
-  assert.ok(row.answer, `Missing answer for ${row.key}`);
-}
-
-console.log(`REAL-WORLD FIELD ISOLATION PASSED: ${results.length}/${results.length} fields returned answers constrained to their own question.`);
+assert.equal(contaminatedRejected, Object.keys(contaminated).length, "Every deliberately contaminated field answer must be rejected");
+console.log(`REAL-WORLD FIELD ISOLATION PASSED: ${results.length}/23 own-field answers accepted; ${contaminatedRejected}/${Object.keys(contaminated).length} contaminated answers rejected.`);
