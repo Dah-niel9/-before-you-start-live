@@ -237,6 +237,10 @@ function answerScopeValid(packet) {
   if (!text || text === NO_EVIDENCE.toLowerCase()) return false;
 
   const rules = {
+    opportunity: {
+      allowed: /\b(?:work|task|activity|service|content|channel|client|customer|project|video|create|produce|outsource|automate)\b/i,
+      neighborOnly: /\b(?:payment schedule|monthly payments?|payment cycle|withdrawal|withdrawal threshold|earnings|pay rate|payment method|bank transfer|paypal|adsense)\b/i
+    },
     nigeriaAccess: {
       allowed: /\b(?:nigeria|country|available|availability|eligible|eligibility|supported|access|participate|geographic|region|restricted|restriction)\b/i,
       neighborOnly: /\b(?:kyc|identity|id|passport|nin|verification|government id)\b/i
