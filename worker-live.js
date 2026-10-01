@@ -528,7 +528,7 @@ export default {
   }
 };
 
-async function handleResearch(request,env) {
+export async function handleResearch(request,env) {
   try {
     if (!env.TAVILY_API_KEY) return json({ok:false,error:"Live Research is not configured yet."},500);
 
