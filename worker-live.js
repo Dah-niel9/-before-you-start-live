@@ -303,18 +303,6 @@ function answerScopeValid(packet) {
   return !!rule.allowed.test(text);
 }
 
-function hasMaterialSourceConflict(packet) {
-  const contents = (packet.sources || [])
-    .map(s => normalize(s.content))
-    .filter(Boolean);
-  if (contents.length < 2) return false;
-
-  // Conservative guard: if multiple field-scoped sources contain directly
-  // opposing requirement/access language, do not let a synthesized answer
-  // hide the disagreement. The field stays unresolved until evidence agrees.
-  return conflictSignal(contents);
-}
-
 function answerFromPacket(packet) {
   const answer = cleanAnswer(packet.answer);
   if (answer === NO_EVIDENCE) return NO_EVIDENCE;
