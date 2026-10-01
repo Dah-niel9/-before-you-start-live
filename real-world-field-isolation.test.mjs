@@ -8,24 +8,9 @@ const opportunity = {
 
 const mixedSources = [
   {
-    title: "YouTube Partner Programme overview & eligibility",
+    title: "Mixed YouTube/Google evidence bundle",
     url: "https://support.google.com/youtube/answer/72851",
-    content: "The YouTube Partner Programme requires living in an eligible country, turning on two-step verification, and having an AdSense for YouTube account. Eligibility for ad revenue includes 1,000 subscribers and either 4,000 qualified watch hours or 10 million qualified Shorts views. Nigeria is an eligible country."
-  },
-  {
-    title: "YouTube channel monetization policies",
-    url: "https://support.google.com/youtube/answer/1311392",
-    content: "YouTube says monetized content should be original and authentic and not mass-produced, generic, repetitive, or manipulative. Reused content needs significant original commentary, substantive modifications, or educational or entertainment value. Automated tools may be used, but the final product must still demonstrate creative value."
-  },
-  {
-    title: "Google AdSense payment thresholds",
-    url: "https://support.google.com/adsense/answer/1709871",
-    content: "AdSense requires identity and address verification at the applicable verification thresholds. For USD payment accounts, the payment-method selection threshold is $10 and the payment threshold is $100."
-  },
-  {
-    title: "Google AdSense payment timelines",
-    url: "https://support.google.com/adsense/answer/7164703",
-    content: "The AdSense payment cycle is monthly. If the balance reaches the payment threshold and there are no payment holds, payment is issued between the 21st and 26th. Bank transfers can take additional business days to arrive."
+    content: "The YouTube Partner Programme requires living in an eligible country, turning on two-step verification, and having an AdSense for YouTube account. Nigeria is an eligible country. Eligibility for ad revenue includes 1,000 subscribers and either 4,000 qualified watch hours or 10 million qualified Shorts views. YouTube says monetized content should be original and authentic and not mass-produced, generic, repetitive, or manipulative. Automated tools may be used, but the final product must still demonstrate creative value. AdSense requires identity and address verification at applicable verification thresholds. For USD payment accounts, the payment-method selection threshold is $10 and the payment threshold is $100. The AdSense payment cycle is monthly. If the balance reaches the payment threshold and there are no payment holds, payment is issued between the 21st and 26th. Bank transfers can take additional business days to arrive."
   }
 ];
 
