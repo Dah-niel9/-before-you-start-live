@@ -482,7 +482,9 @@ function buildBreakdown(fields, profile) {
   };
 }
 
-export { FIELD_CONTRACTS };\n\nexport async function runFieldResearch({ env, name, claim, url, profile, contract }) {
+export { FIELD_CONTRACTS };
+
+export async function runFieldResearch({ env, name, claim, url, profile, contract }) {
   const query = fieldPrompt(name,claim,url,contract,profile);
   const result = await tavilySearch(env,query);
   const data = result.data || {};
