@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
-import { runFieldResearch, FIELD_CONTRACTS } from "./worker-live.js";
 
-const env = { TAVILY_API_KEY: process.env.TAVILY_API_KEY };
-assert.ok(env.TAVILY_API_KEY, "TAVILY_API_KEY secret is required");
+const LIVE_API = "https://before-you-start.nieldah3.workers.dev/api/research";
 
 const opportunity = {
   name: "YouTube Automation",
@@ -17,31 +15,24 @@ const opportunity = {
   }
 };
 
-const results = [];
-for (const contract of FIELD_CONTRACTS) {
-  const result = await runFieldResearch({
-    env,
-    name: opportunity.name,
-    claim: opportunity.claim,
-    url: opportunity.url,
-    profile: opportunity.profile,
-    contract
-  });
-  const answer = result.packet.answer;
-  results.push({
-    key: contract.key,
-    question: contract.question,
-    answer,
-    sourceCount: result.packet.sources.length,
-    sources: result.packet.sources.slice(0, 5).map(s => ({
-      title: s.title || "",
-      url: s.url || "",
-      researchKey: s.researchKey || contract.key
-    })),
-    ok: result.packet.ok,
-    error: result.error || null
-  });
-}
+const response = await fetch(LIVE_API, {
+  method: "POST",
+  headers: {"content-type": "application/json"},
+  body: JSON.stringify(opportunity)
+});
+
+const body = await response.json();
+assert.equal(response.ok, true, `Live API returned HTTP ${response.status}: ${JSON.stringify(body)}`);
+assert.equal(body.ok, true, `Live research failed: ${JSON.stringify(body)}`);
+
+const fields = body.fieldResearch || {};
+const results = Object.entries(fields).filter(([key]) => key !== "biggestCatch").map(([key, value]) => ({
+  key,
+  question: value.question || "",
+  answer: value.answer || "No clear evidence found.",
+  sourceCount: value.sourceCount || 0,
+  researchKey: value.researchKey || ""
+}));
 
 const noEvidence = "No clear evidence found.";
 const ownField = new Map(FIELD_CONTRACTS.map(c => [c.key, c]));
