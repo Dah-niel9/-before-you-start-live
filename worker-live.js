@@ -251,7 +251,7 @@ function answerScopeValid(packet) {
     },
     device: {
       allowed: /\b(?:laptop|computer|desktop|phone|mobile|device|browser|software|operating system|windows|macos|android|ios)\b/i,
-      neighborOnly: /\b(?:payment|payout|bank transfer|paypal|adsense|wallet|withdrawal|withdraw|earnings|per task|per project)\b/i
+      neighborOnly: /\b(?:payment|payout|bank transfer|paypal|adsense|wallet|withdrawal|withdraw|earnings|per task|per project|camera|microphone|optional equipment|equipment)\b/i
     },
     kyc: {
       allowed: /\b(?:kyc|identity|id|passport|nin|government id|document|address verification)\b/i,
