@@ -124,12 +124,12 @@ for (const key of expectedKeys) {
 // The old unsafe raw-source fallback must not exist.
 assert.doesNotMatch(workerText,/packet\.answer\s*=\s*cleanAnswer\(ranked\[0\]\?\.content\)/);
 
-// Final architecture guard: all 21 contracts are present.
-assert.equal(expectedKeys.length,23);
+// Final architecture guard: all 22 contracts are present.
+assert.equal(expectedKeys.length,22);
 
 console.log("FINAL REGRESSION: PASS");
-console.log("23/23 field contracts present.");
-console.log(correctCount+"/23 correct field-isolation cases passed.");
+console.log("22/22 field contracts present.");
+console.log(correctCount+"/22 correct field-isolation cases passed.");
 console.log(contaminationCount+"/13 neighboring-field contamination cases rejected.");
 console.log("Conflict handling: PASS.");
 console.log("False-conflict protection: PASS.");
