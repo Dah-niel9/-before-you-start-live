@@ -205,10 +205,10 @@ function splitEvidenceSentences(text) {
 
 function sentencePolarity(sentence, rule) {
   if (!rule.relevant.test(sentence)) return null;
-  const positive = rule.positive.test(sentence);
   const negative = rule.negative.test(sentence);
-  if (positive === negative) return null;
-  return negative ? "negative" : "positive";
+  if (negative) return "negative";
+  if (rule.positive.test(sentence)) return "positive";
+  return null;
 }
 
 function hasMaterialSourceConflict(packet) {
