@@ -243,7 +243,7 @@ function answerScopeValid(packet) {
     },
     startingCost: {
       allowed: /\b(?:cost|fee|price|subscription|deposit|registration|pay|payment|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
-      reject: /\b(?:optional|not required|not necessary)\b.{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b/i
+      reject: /(?:\b(?:optional|not required|not necessary)\b[^.!?]{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b|\b(?:laptop|computer|camera|phone|equipment|software)\b[^.!?]{0,80}\b(?:optional|not required|not necessary)\b)/i
     },
     kyc: {
       allowed: /\b(?:kyc|identity|id|passport|nin|government id|document|address verification)\b/i,
@@ -271,7 +271,7 @@ function answerScopeValid(packet) {
     },
     realCash: {
       allowed: /\b(?:cash|cost|fee|price|subscription|deposit|registration|pay|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
-      reject: /\b(?:optional|not required|not necessary)\b.{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b/i
+      reject: /(?:\b(?:optional|not required|not necessary)\b[^.!?]{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b|\b(?:laptop|computer|camera|phone|equipment|software)\b[^.!?]{0,80}\b(?:optional|not required|not necessary)\b)/i
     },
     realData: {
       allowed: /\b(?:data|internet|bandwidth|upload|download|stream|connectivity|mb|gb|wifi)\b/i
