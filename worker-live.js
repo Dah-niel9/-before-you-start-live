@@ -267,7 +267,7 @@ function answerScopeValid(packet) {
     },
     earnings: {
       allowed: /\b(?:earn|earning|earnings|pay rate|rate|commission|revenue share|per task|per project|income|paid)\b/i,
-      neighborOnly: /\b(?:platform revenue|company revenue|customer spending|customers spend|market size|annual revenue)\b/i
+      neighborOnly: /\b(?:platform revenue|company revenue|customer spending|customers spend|market size|annual revenue|minimum withdrawal|withdrawal threshold|payment threshold|payment method|bank transfer|paypal|adsense)\b/i
     },
     firstMoney: {
       allowed: /\b(?:first payment|first payout|first money|first sale|first client|first task|approval|threshold|processing|days|weeks|time)\b/i,
@@ -294,6 +294,10 @@ function answerScopeValid(packet) {
     checkAccessibility: {
       allowed: /\b(?:nigeria|available|access|eligible|device|laptop|computer|phone|id|passport|nin|kyc|qualification|requirement|participate)\b/i,
       neighborOnly: /\b(?:earnings|pay rate|per task|revenue|withdrawal|payment method)\b/i
+    },
+    checkWorthwhile: {
+      allowed: /\b(?:worthwhile|worth|value|benefit|tradeoff|cost|time|earnings|income|availability|risk|effort|commitment)\b/i,
+      neighborOnly: /\b(?:payment threshold|withdrawal threshold|payment method|bank transfer|paypal|adsense|monthly payment|payment cycle)\b/i
     }
   };
 
