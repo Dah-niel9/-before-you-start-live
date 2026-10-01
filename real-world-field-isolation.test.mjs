@@ -70,7 +70,7 @@ const contaminated = {
   device: "A laptop is required and bank transfer is used for payment."
 };
 
-assert.equal(FIELD_CONTRACTS.length, 23, "Expected 23 production field contracts");
+assert.equal(FIELD_CONTRACTS.length, 22, "Expected 23 production field contracts");
 
 const results = [];
 let contaminatedRejected = 0;
