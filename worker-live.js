@@ -136,8 +136,8 @@ const FIELD_CONFLICT_RULES = {
   },
   kyc: {
     relevant: /\b(?:kyc|identity|id|passport|nin|government id|identity verification|address verification|document)\b/i,
-    positive: /\b(?:requires?|must provide|need(?:s)?|requires? verification|identity verification required|government id required|passport required|nin required)\b[^.!?]{0,120}\b(?:kyc|identity|id|passport|nin|government id|document|verification)\b/i,
-    negative: /\b(?:no kyc|kyc not required|not required|does not require|do not need|no need for|optional)\b[^.!?]{0,120}\b(?:kyc|identity|id|passport|nin|government id|document|verification)\b/i
+    positive: /(?:\b(?:kyc|identity verification|government id|passport|nin|identity|id)\b[^.!?]{0,80}\b(?:required|requires?|must|need(?:s)?)\b|\b(?:required|requires?|must|need(?:s)?)\b[^.!?]{0,80}\b(?:kyc|identity verification|government id|passport|nin|identity|id)\b)/i,
+    negative: /(?:\b(?:no kyc|kyc not required|identity verification (?:is )?not required|government id (?:is )?not required|passport (?:is )?not required|nin (?:is )?not required|id (?:is )?not required)\b|\b(?:not required|does not require|do not need|no need for|optional)\b[^.!?]{0,80}\b(?:kyc|identity verification|government id|passport|nin|identity|id)\b)/i
   },
   payment: {
     relevant: /\b(?:payment|payout|paid|pay|bank transfer|paypal|adsense|wallet|wire|method|receive money)\b/i,
@@ -151,7 +151,7 @@ const FIELD_CONFLICT_RULES = {
   },
   startingCost: {
     relevant: /\b(?:cost|fee|price|subscription|deposit|registration|pay|payment|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
-    positive: /\b(?:requires?|must pay|mandatory|registration fee|subscription fee|deposit|upfront fee|costs?|charges?)\b[^.!?]{0,100}(?:\b(?:₦|ngn|naira|usd|\$|€|£)\b|\$|€|£|\d)/i,
+    positive: /(?:\b(?:requires?|must pay|mandatory|registration fee|subscription fee|deposit|upfront fee|costs?|charges?)\b[^.!?]{0,100}(?:₦|ngn|naira|usd|\$|€|£|\d)|(?:₦|ngn|naira|usd|\$|€|£|\d)[^.!?]{0,60}\b(?:required|mandatory|subscription|fee|deposit|charge)\b)/i,
     negative: /\b(?:no fee|no cost|free to (?:join|start)|no registration fee|not required|does not require|no deposit|optional)\b/i
   },
   earnings: {
