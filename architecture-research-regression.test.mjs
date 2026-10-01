@@ -5,6 +5,7 @@ import vm from "node:vm";
 const sourceText = readFileSync("./worker-live.js","utf8");
 const transformed = sourceText
   .replace("export async function runFieldResearch","async function runFieldResearch")
+  .replace("export { FIELD_CONTRACTS, answerFromPacket };","")
   .replace("export default {","const defaultExport = {")
   + "\nglobalThis.__test={answerFromPacket,NO_EVIDENCE};";
 
