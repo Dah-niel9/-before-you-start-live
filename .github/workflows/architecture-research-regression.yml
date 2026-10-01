@@ -11,5 +11,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --check worker-live.js
+      - run: node --input-type=module --check < worker-live.js
       - run: node architecture-research-regression.test.mjs
