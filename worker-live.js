@@ -289,7 +289,7 @@ function answerScopeValid(packet) {
     },
     checkLegitimacy: {
       allowed: /\b(?:legitimate|legitimacy|operator|official|company|platform|warning|complaint|fraud|scam|verification|established|regulator|regulatory)\b/i,
-      neighborOnly: /\b(?:earnings|pay rate|per task|withdrawal|payment method)\b/i
+      neighborOnly: /\b(?:earn|earnings|pay rate|per task|revenue|income|withdrawal|payment method)\b/i
     },
     checkAccessibility: {
       allowed: /\b(?:nigeria|available|access|eligible|device|laptop|computer|phone|id|passport|nin|kyc|qualification|requirement|participate)\b/i,
