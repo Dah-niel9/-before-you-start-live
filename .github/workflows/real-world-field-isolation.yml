@@ -17,3 +17,5 @@ jobs:
         env:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: node real-world-field-isolation.test.mjs
+
+# Trigger real-world isolation test after repository secret setup.
