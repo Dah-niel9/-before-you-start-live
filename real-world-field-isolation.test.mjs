@@ -36,7 +36,7 @@ const candidateAnswers = {
   availability: "The YouTube Partner Programme is currently operating and has published eligibility requirements for creators.",
   device: "No clear evidence found.",
   kyc: "Identity and address verification can be required for AdSense payments when the applicable verification thresholds are reached.",
-  payment: "AdSense for YouTube can pay creators through supported payment methods such as bank transfer, depending on the payment account and country.",
+  payment: "Creators receive payouts through supported payment methods such as bank transfer.",
   withdrawal: "For USD accounts, the payment threshold is $100; when the threshold is reached and there are no holds, payment is issued between the 21st and 26th.",
   startingCost: "No mandatory upfront registration fee is established by the evidence reviewed.",
   earnings: "Creators can earn ad revenue from monetized YouTube content after meeting the applicable eligibility requirements.",
