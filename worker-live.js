@@ -482,7 +482,7 @@ function buildBreakdown(fields, profile) {
   };
 }
 
-export { FIELD_CONTRACTS };
+export { FIELD_CONTRACTS, answerFromPacket };
 
 export async function runFieldResearch({ env, name, claim, url, profile, contract }) {
   const query = fieldPrompt(name,claim,url,contract,profile);
