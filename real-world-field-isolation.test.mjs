@@ -25,6 +25,8 @@ const body = await response.json();
 assert.equal(response.ok, true, `Live API returned HTTP ${response.status}: ${JSON.stringify(body)}`);
 assert.equal(body.ok, true, `Live research failed: ${JSON.stringify(body)}`);
 
+console.log("LIVE_API_KEYS", Object.keys(body));
+console.log("LIVE_API_RESEARCH_BREAKDOWN", JSON.stringify(body.researchBreakdown || null, null, 2));
 const fields = body.fieldResearch || {};
 const results = Object.entries(fields).filter(([key]) => key !== "biggestCatch").map(([key, value]) => ({
   key,
