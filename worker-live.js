@@ -245,9 +245,13 @@ function answerScopeValid(packet) {
       allowed: /\b(?:cost|fee|price|subscription|deposit|registration|pay|payment|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
       reject: /(?:\b(?:optional|not required|not necessary)\b[^.!?]{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b|\b(?:laptop|computer|camera|phone|equipment|software)\b[^.!?]{0,80}\b(?:optional|not required|not necessary)\b)/i
     },
+    device: {
+      allowed: /\b(?:laptop|computer|desktop|phone|mobile|device|browser|software|operating system|windows|macos|android|ios)\b/i,
+      neighborOnly: /\b(?:payment|payout|bank transfer|paypal|adsense|wallet|withdrawal|withdraw|earnings|per task|per project)\b/i
+    },
     kyc: {
       allowed: /\b(?:kyc|identity|id|passport|nin|government id|document|address verification)\b/i,
-      neighborOnly: /\b(?:two[- ]step|2fa|two factor|login security|authenticator|verification code)\b/i
+      neighborOnly: /\b(?:two[- ]step|2fa|two factor|login security|authenticator|verification code|payment|payout|bank transfer|paypal|adsense|wallet|withdrawal|withdraw)\b/i
     },
     payment: {
       allowed: /\b(?:payment|payout|paid|pay|bank transfer|paypal|adsense|wallet|wire|method|receive money)\b/i,
