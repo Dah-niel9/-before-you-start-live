@@ -37,6 +37,16 @@ assert.ok(!/(?:course|training|academy|tuition|branding|outsourc(?:e|ing)|proper
   "Starting cost must not contain unrelated optional/course/outsourcing costs.");
 assert.ok(!/(?:course|training|academy|tuition)/i.test(field("realCash")),
   "Real cash must not contain course/training prices.");
+assert.ok(!/(?:\$\s*\d|usd|₦\s*\d|ngn\s*\d|naira|tools?|software|subscription|outsourc(?:e|ing)|video production|per video)/i.test(field("realData")),
+  "Real data must not contain tool/outsourcing/money-cost evidence.");
+assert.ok(!/(?:course|training|academy|tuition|job listing|indeed|salary|earnings?|income|pay rate)/i.test(field("checkAccessibility")),
+  "Accessibility check must not contain course/job/earnings evidence.");
+assert.ok(!/(?:course|training|academy|tuition|branding|channel art|stock footage|first-year investment|earnings?|income|pay rate)/i.test(field("checkWorthwhile")),
+  "Worthwhile check must not contain unrelated cost/earnings evidence.");
+const sc = field("startingCost");
+if (/(?:generally required|typically required|often requires|can cost|may cost|budget|investment of|safety net)/i.test(sc)) {
+  assert.equal(sc, "No clear evidence found.", "Soft cost estimates must not be treated as mandatory starting costs.");
+}
 assert.ok(!/(?:average price of \d+ ?(?:gb|mb)|telecom tariff)/i.test(field("realData")),
   "Real data must not rely on generic telecom pricing.");
 assert.ok(!/(?:course price|training price|tuition|academy|course)/i.test(field("opportunityCost")),
