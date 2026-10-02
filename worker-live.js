@@ -260,7 +260,7 @@ function answerScopeValid(packet) {
     },
     startingCost: {
       allowed: /\b(?:cost|fee|price|subscription|deposit|registration|pay|payment|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
-      reject: /(?:\b(?:optional|not required|not necessary)\b[^.!?]{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b|\b(?:laptop|computer|camera|phone|equipment|software)\b[^.!?]{0,80}\b(?:optional|not required|not necessary)\b)/i
+      reject: /(?:\b(?:optional|not required|not necessary|recommended|one-time setup|properly resourced|first-year|annual stock|ai script|outsourc(?:e|ing)|course|training|academy|branding|channel art|intro|outro)\b[^.!?]{0,140}\b(?:cost|price|fee|subscription|\$|usd|₦|ngn|naira)\b|\b(?:cost|price|fee|subscription|\$|usd|₦|ngn|naira)\b[^.!?]{0,140}\b(?:optional|recommended|course|training|academy|outsourc(?:e|ing)|properly resourced|first-year)\b|\b(?:optional|not required|not necessary)\b[^.!?]{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b|\b(?:laptop|computer|camera|phone|equipment|software)\b[^.!?]{0,80}\b(?:optional|not required|not necessary)\b)/i
     },
     device: {
       allowed: /\b(?:laptop|computer|desktop|phone|mobile|device|browser|software|operating system|windows|macos|android|ios)\b/i,
