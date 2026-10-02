@@ -39,6 +39,12 @@ assert.ok(!/(?:course|training|academy|tuition)/i.test(field("realCash")),
   "Real cash must not contain course/training prices.");
 assert.ok(!/(?:\$\s*\d|usd|₦\s*\d|ngn\s*\d|naira|tools?|software|subscription|outsourc(?:e|ing)|video production|per video)/i.test(field("realData")),
   "Real data must not contain tool/outsourcing/money-cost evidence.");
+if (field("realData") !== "No clear evidence found.") {
+  assert.match(field("realData"), /\b\d+(?:\.\d+)?\s*(?:gb|mb|kb|tb)\b|\b(?:\d+(?:\.\d+)?\s*(?:naira|ngn|₦)|per\s+(?:video|upload|download|month|week)|spent|spending|uses?\s+\d+)\b/i,
+    "Real data must contain a concrete usage or cost measure.");
+}
+assert.ok(field("checkAccessibility") === "No clear evidence found." || field("checkAccessibility").trim().length >= 40,
+  "Accessibility check must not be a fragment.");
 assert.ok(!/(?:course|training|academy|tuition|job listing|indeed|salary|earnings?|income|pay rate)/i.test(field("checkAccessibility")),
   "Accessibility check must not contain course/job/earnings evidence.");
 assert.ok(!/(?:course|training|academy|tuition|branding|channel art|stock footage|first-year investment|earnings?|income|pay rate)/i.test(field("checkWorthwhile")),
