@@ -36,7 +36,7 @@ const own = [
   ["startingCost","There is no registration fee to start."],
   ["realCash","There is no registration fee or mandatory cash cost."],
   ["realTime","The work requires about 2 hours per day."],
-  ["realData","The work uses internet data for uploads and downloads."],
+  ["realData","The work uses about 2GB of data per week for uploads and downloads."],
   ["realOpportunity","The main tradeoff is spending time here instead of another opportunity."]
 ];
 
