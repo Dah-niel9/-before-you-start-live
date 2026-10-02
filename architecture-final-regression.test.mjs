@@ -46,7 +46,7 @@ const correct = [
   ["checkAccessibility","Nigeria access, device and ID requirements determine practical accessibility."],
   ["checkWorthwhile","Earnings, costs, time and availability are the main factors to consider."],
   ["realCash","There is no registration fee or mandatory starting cash cost."],
-  ["realData","The work uses internet data."],
+  ["realData","The work uses about 2GB of data per week for uploads and downloads."],
   ["realTime","The work takes about 2 hours per day."],
   ["realOpportunity","The main tradeoff is spending those hours on this opportunity instead of another activity."]
 ];
