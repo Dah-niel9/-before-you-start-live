@@ -45,6 +45,18 @@ function cleanAnswer(value) {
   return text.length > 650 ? text.slice(0, 647).trimEnd() + "..." : text;
 }
 
+function fieldGuard(key) {
+  const guards = {
+    opportunity: "For this field, describe the actual work/tasks the person performs. Do not answer with monetization eligibility, earnings, payment methods, course prices, or generic YouTube industry facts.",
+    nigeriaAccess: "For this field, ONLY answer whether a person located in Nigeria can participate in this exact opportunity. Reject earnings figures, course/training offers, generic Nigerian data prices, and unrelated Nigerian jobs as evidence.",
+    availability: "For this field, ONLY answer whether this exact opportunity is currently operating/available to participate in. Do not use earnings claims, course sales, training offers, generic articles, or unrelated job listings as proof of availability.",
+    startingCost: "For this field, ONLY include costs that are mandatory to start this exact opportunity. Do not turn recommended outsourcing, optional tools, training/course prices, stock subscriptions, branding, or a 'properly resourced' budget into mandatory costs unless the evidence explicitly says they are required.",
+    realData: "For this field, ONLY include internet/data use or cost created by doing this exact opportunity. Do not substitute generic Nigerian telecom prices unless the source directly connects that cost to the opportunity's actual data use.",
+    opportunityCost: "For this field, describe the real tradeoff of spending the user's time/resources on this opportunity. Do not treat the price of a course, unrelated tool, or service as opportunity cost unless the evidence directly establishes that tradeoff."
+  };
+  return guards[key] || "";
+}
+
 function fieldPrompt(name, claim, url, contract, profile) {
   const context = [
     `Opportunity: "${name}".`,
@@ -63,6 +75,7 @@ function fieldPrompt(name, claim, url, contract, profile) {
     "",
     `Research question: ${contract.question}`,
     `What to extract: ${contract.extract}`,
+    fieldGuard(contract.key),
     "",
     "Return a concise factual research answer for this question only.",
     "Use exact numbers and currencies when the sources provide them.",
