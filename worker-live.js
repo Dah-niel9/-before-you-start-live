@@ -49,10 +49,10 @@ function fieldGuard(key) {
   const guards = {
     opportunity: "For this field, describe the actual work/tasks the person performs. Do not answer with monetization eligibility, earnings, payment methods, course prices, or generic YouTube industry facts.",
     nigeriaAccess: "For this field, ONLY answer whether a person located in Nigeria can participate in this exact opportunity. Reject earnings figures, course/training offers, generic Nigerian data prices, and unrelated Nigerian jobs as evidence.",
-    availability: "For this field, ONLY answer whether this exact opportunity is currently operating/available to participate in. Do not use earnings claims, course sales, training offers, generic articles, or unrelated job listings as proof of availability.",
-    startingCost: "For this field, ONLY include costs that are mandatory to start this exact opportunity. Do not turn recommended outsourcing, optional tools, training/course prices, stock subscriptions, branding, or a 'properly resourced' budget into mandatory costs unless the evidence explicitly says they are required.",
-    realData: "For this field, ONLY include internet/data use or cost created by doing this exact opportunity. Do not substitute generic Nigerian telecom prices unless the source directly connects that cost to the opportunity's actual data use.",
-    opportunityCost: "For this field, describe the real tradeoff of spending the user's time/resources on this opportunity. Do not treat the price of a course, unrelated tool, or service as opportunity cost unless the evidence directly establishes that tradeoff."
+    availability: "For this field, ONLY answer whether this exact opportunity is currently operating/available to participate in. Do not use earnings, costs, outsourcing prices, course sales, training offers, generic articles, or unrelated job listings as proof of availability. If the evidence only describes how the opportunity works, that is not proof that it is currently available.",
+    startingCost: "For this field, ONLY include money that the user is required to spend to begin this exact opportunity. Optional tools, recommended tools, outsourcing, courses, training, branding, equipment, stock subscriptions, and example budgets are NOT starting costs unless the evidence explicitly establishes that the user cannot start without paying them. If the evidence gives both a possible paid setup and an explicit statement that no mandatory purchase/fee/subscription is required, report No clear evidence found rather than choosing the paid setup.",
+    realData: "For this field, ONLY include internet/data use or cost created by doing this exact opportunity. A generic Nigerian data-plan price is not enough. Prefer evidence tied to actual uploads, downloads, streaming, file transfer, or measured data use for the opportunity. If the exact opportunity-specific data cost is not established, say No clear evidence found.",
+    opportunityCost: "For this field, describe the real tradeoff of spending the user's time/resources on this opportunity. Focus on time, attention, money, or effort that could instead be used elsewhere. Do not treat a course price, unrelated tool price, or service price as opportunity cost unless the evidence directly establishes that tradeoff."
   };
   return guards[key] || "";
 }
@@ -349,16 +349,16 @@ function fieldScopedAnswer(packet) {
       neighbor: /\b(?:kyc|identity|passport|nin|verification|government id|earnings?|income|pay rate|course|training|academy|job listing|vacanc(?:y|ies)|data plan|\b(?:gb|mb)\b)\b/i
     },
     availability: {
-      neighbor: /\b(?:indeed|job listing|job listings|related jobs|vacancies|earnings?|income|pay rate|course|training|academy|tuition|course price)\b/i
+      neighbor: /\b(?:indeed|job listing|job listings|related jobs|vacancies|earnings?|income|pay rate|costs?|fees?|\$|usd|₦|ngn|naira|course|training|academy|tuition|course price|outsourc(?:e|ing))\b/i
     },
     startingCost: {
       neighbor: /\b(?:optional|recommended|one-time setup|properly resourced|first-year|annual stock|ai script|outsourc(?:e|ing)|course|training|academy|branding|channel art|intro|outro)\b/i
     },
     realData: {
-      neighbor: /\b(?:course|training|academy|course price|unrelated telecom|generic nigeria data price)\b/i
+      neighbor: /\b(?:course|training|academy|course price|unrelated telecom|generic nigeria data price|average price of \d+ ?(?:gb|mb)|telecom tariff)\b/i
     },
     opportunityCost: {
-      neighbor: /\b(?:course price|training price|tuition|subscription price)\b/i
+      neighbor: /\b(?:course price|training price|tuition|subscription price|course|academy|training)\b/i
     }
   };
 
@@ -367,6 +367,37 @@ function fieldScopedAnswer(packet) {
 
   const kept = sentences.filter(s => !rule.neighbor.test(s));
   if (!kept.length) return NO_EVIDENCE;
+
+  // Some Tavily answers contain two opposing claims in the same synthesized
+  // answer. Do not let a broad keyword match turn that into a false fact.
+  if (packet.key === "startingCost" || packet.key === "realCash") {
+    const joined = kept.join(" ");
+    const hasMandatory = /\b(?:mandatory|required|must pay|upfront|deposit|subscription)\b/i.test(joined);
+    const hasExplicitNoMandatory = /\b(?:no mandatory|no required|not mandatory|not required|no registration fee|no deposit|no subscription)\b/i.test(joined);
+    if (hasMandatory && hasExplicitNoMandatory) return NO_EVIDENCE;
+  }
+
+  if (packet.key === "availability") {
+    const joined = kept.join(" ");
+    if (!/\b(?:currently|current|operating|accepting|open|active|available|availability|participants|access)\b/i.test(joined)) {
+      return NO_EVIDENCE;
+    }
+  }
+
+  if (packet.key === "realData") {
+    const joined = kept.join(" ");
+    if (!/\b(?:upload|download|internet|data|bandwidth|stream|connectivity|file)\b/i.test(joined)) {
+      return NO_EVIDENCE;
+    }
+  }
+
+  if (packet.key === "opportunityCost") {
+    const joined = kept.join(" ");
+    if (!/\b(?:tradeoff|trade-off|give up|instead|alternative|forego|lost time|commit(?:ting|ment))\b/i.test(joined)) {
+      return NO_EVIDENCE;
+    }
+  }
+
   return cleanAnswer(kept.join(" "));
 }
 
