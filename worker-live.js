@@ -362,6 +362,15 @@ function fieldScopedAnswer(packet) {
     },
     realCash: {
       neighbor: /\b(?:course price|training price|tuition|course|academy|training|branding|channel art|intro|outro|optional|recommended|properly resourced)\b/i
+    },
+    realData: {
+      neighbor: /\b(?:\$\s*\d|usd|₦\s*\d|ngn\s*\d|naira|tools?|software|subscription|outsourc(?:e|ing)|video production|per video|course|training|academy)\b/i
+    },
+    checkAccessibility: {
+      neighbor: /\b(?:course|training|academy|tuition|job listing|indeed|salary|earnings?|income|pay rate)\b/i
+    },
+    checkWorthwhile: {
+      neighbor: /\b(?:course|training|academy|tuition|branding|channel art|stock footage|first-year investment|earnings?|income|pay rate)\b/i
     }
   };
 
@@ -380,6 +389,15 @@ function fieldScopedAnswer(packet) {
     if (hasMandatory && hasExplicitNoMandatory) return NO_EVIDENCE;
   }
 
+  if (packet.key === "startingCost") {
+    const joined = kept.join(" ");
+    const explicitMandatory = /\b(?:mandatory|required|must pay|must purchase|cannot start without|needed to start|required to start|upfront fee|registration fee|deposit)\b/i.test(joined);
+    const softEstimate = /\b(?:generally required|typically required|often requires|can cost|may cost|budget|investment of|safety net)\b/i.test(joined);
+    if (!explicitMandatory || (softEstimate && !/\b(?:mandatory|required|must pay|must purchase|cannot start without|needed to start|required to start)\b/i.test(joined))) {
+      return NO_EVIDENCE;
+    }
+  }
+
   if (packet.key === "availability") {
     const joined = kept.join(" ");
     if (!/\b(?:currently|current|operating|accepting|open|active|available|availability|participants|access)\b/i.test(joined)) {
@@ -390,6 +408,9 @@ function fieldScopedAnswer(packet) {
   if (packet.key === "realData") {
     const joined = kept.join(" ");
     if (!/\b(?:upload|download|internet|data|bandwidth|stream|connectivity|file)\b/i.test(joined)) {
+      return NO_EVIDENCE;
+    }
+    if (/\b(?:\$\s*\d|usd|₦\s*\d|ngn\s*\d|naira|tools?|software|subscription|outsourc(?:e|ing)|video production|per video)\b/i.test(joined)) {
       return NO_EVIDENCE;
     }
   }
