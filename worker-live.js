@@ -329,15 +329,55 @@ function answerScopeValid(packet) {
   return !!rule.allowed.test(text);
 }
 
-function answerFromPacket(packet) {
-  const answer = cleanAnswer(packet.answer);
-  if (answer === NO_EVIDENCE) return NO_EVIDENCE;
-  if (hasMaterialSourceConflict(packet)) return NO_EVIDENCE;
+function fieldScopedAnswer(packet) {
+  const raw = cleanAnswer(packet.answer);
+  if (!raw || raw === NO_EVIDENCE) return NO_EVIDENCE;
 
-  // The search model can occasionally answer a neighboring field even when
-  // the prompt asks for one exact field. Reject answers that fail the field's
-  // own scope checks instead of allowing cross-field contamination downstream.
-  if (!answerScopeValid({...packet, answer})) return NO_EVIDENCE;
+  // Research answers can contain a useful field-specific sentence plus
+  // unrelated neighboring facts. Keep the relevant sentences instead of
+  // discarding the entire answer because one sentence wandered.
+  const sentences = raw
+    .split(/(?<=[.!?])\s+(?=[A-Z₦$])/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const rules = {
+    opportunity: {
+      neighbor: /\b(?:payment schedule|monthly payments?|payment cycle|withdrawal|withdrawal threshold|pay rate|payment method|bank transfer|paypal|adsense|course|training|subscription price|course price|revenue|earnings)\b/i
+    },
+    nigeriaAccess: {
+      neighbor: /\b(?:kyc|identity|passport|nin|verification|government id|earnings?|income|pay rate|course|training|academy|job listing|vacanc(?:y|ies)|data plan|\b(?:gb|mb)\b)\b/i
+    },
+    availability: {
+      neighbor: /\b(?:indeed|job listing|job listings|related jobs|vacancies|earnings?|income|pay rate|course|training|academy|tuition|course price)\b/i
+    },
+    startingCost: {
+      neighbor: /\b(?:optional|recommended|one-time setup|properly resourced|first-year|annual stock|ai script|outsourc(?:e|ing)|course|training|academy|branding|channel art|intro|outro)\b/i
+    },
+    realData: {
+      neighbor: /\b(?:course|training|academy|course price|unrelated telecom|generic nigeria data price)\b/i
+    },
+    opportunityCost: {
+      neighbor: /\b(?:course price|training price|tuition|subscription price)\b/i
+    }
+  };
+
+  const rule = rules[packet.key];
+  if (!rule) return raw;
+
+  const kept = sentences.filter(s => !rule.neighbor.test(s));
+  if (!kept.length) return NO_EVIDENCE;
+  return cleanAnswer(kept.join(" "));
+}
+
+function answerFromPacket(packet) {
+  const answer = fieldScopedAnswer(packet);
+  if (answer === NO_EVIDENCE) return NO_EVIDENCE;
+
+  const scopedPacket = {...packet, answer};
+  if (hasMaterialSourceConflict(scopedPacket)) return NO_EVIDENCE;
+
+  if (!answerScopeValid(scopedPacket)) return NO_EVIDENCE;
 
   return answer;
 }
