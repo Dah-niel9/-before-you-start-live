@@ -251,12 +251,12 @@ function answerScopeValid(packet) {
 
   const rules = {
     opportunity: {
-      allowed: /\b(?:work|task|activity|service|content|channel|client|customer|project|video|create|produce|outsource|automate)\b/i,
-      neighborOnly: /\b(?:payment schedule|monthly payments?|payment cycle|withdrawal|withdrawal threshold|earnings|pay rate|payment method|bank transfer|paypal|adsense)\b/i
+      allowed: /\b(?:work|task|activity|service|content|channel|client|customer|project|video|create|produce|outsource|automate|script|edit|publish|manage|research|thumbnail|upload)\b/i,
+      neighborOnly: /\b(?:payment schedule|monthly payments?|payment cycle|withdrawal|withdrawal threshold|pay rate|payment method|bank transfer|paypal|adsense|course|training|subscription price|course price|revenue|earnings)\b/i
     },
     nigeriaAccess: {
       allowed: /\b(?:nigeria|country|available|availability|eligible|eligibility|supported|access|participate|geographic|region|restricted|restriction)\b/i,
-      neighborOnly: /\b(?:kyc|identity|id|passport|nin|verification|government id)\b/i
+      neighborOnly: /\b(?:kyc|identity|id|passport|nin|verification|government id|earnings?|income|pay rate|course|training|academy|job listing|vacanc(?:y|ies)|data plan|gb|mb)\b/i
     },
     startingCost: {
       allowed: /\b(?:cost|fee|price|subscription|deposit|registration|pay|payment|paid|charge|naira|ngn|usd|\$|€|£)\b/i,
@@ -280,7 +280,7 @@ function answerScopeValid(packet) {
     },
     availability: {
       allowed: /\b(?:available|availability|accepting|open|active|operating|tasks|projects|work|participants|access|invite|waitlist)\b/i,
-      neighborOnly: /\b(?:indeed|job listing|job listings|related jobs|vacancies)\b/i
+      neighborOnly: /\b(?:indeed|job listing|job listings|related jobs|vacancies|earnings?|income|pay rate|course|training|academy|tuition|course price)\b/i
     },
     earnings: {
       allowed: /\b(?:earn|earning|earnings|pay rate|rate|commission|revenue share|per task|per project|income|paid)\b/i,
@@ -295,7 +295,8 @@ function answerScopeValid(packet) {
       reject: /(?:\b(?:optional|not required|not necessary)\b[^.!?]{0,80}\b(?:laptop|computer|camera|phone|equipment|software)\b|\b(?:laptop|computer|camera|phone|equipment|software)\b[^.!?]{0,80}\b(?:optional|not required|not necessary)\b)/i
     },
     realData: {
-      allowed: /\b(?:data|internet|bandwidth|upload|download|stream|connectivity|mb|gb|wifi)\b/i
+      allowed: /\b(?:data|internet|bandwidth|upload|download|stream|connectivity|mb|gb|wifi)\b/i,
+      neighborOnly: /\b(?:course|training|academy|course price|unrelated telecom|generic nigeria data price)\b/i
     },
     realTime: {
       allowed: /\b(?:hour|hours|time|daily|weekly|per task|per project|workload|commitment|schedule|frequency)\b/i,
@@ -379,9 +380,13 @@ function makeVerdict(fields, profile) {
   }
 
   const cost = fields.startingCost.answer;
-  if (profile?.budgetLabel && containsAny(cost,[/required|mandatory|must pay|upfront|deposit|subscription/i])) {
+  if (profile?.budgetLabel) {
     const zeroBudget = /₦0|0\s*(?:naira|budget)/i.test(String(profile.budgetLabel));
-    if (zeroBudget && /(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s*[1-9]/i.test(cost)) {
+    const explicitlyNoMandatory = /(?:no|not|without)\s+(?:mandatory|required|upfront)\s+(?:registration|fee|cost|purchase|subscription|payment)/i.test(cost)
+      || /(?:no mandatory|no required|not mandatory|not required)\b/i.test(cost);
+    const positiveMandatory = /(?:mandatory|required|must pay|upfront|deposit|subscription)\b/i.test(cost);
+    const hasPositiveMoney = /(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s*[1-9]/i.test(cost);
+    if (zeroBudget && positiveMandatory && !explicitlyNoMandatory && hasPositiveMoney) {
       blockers.push("The research indicates a required starting cost while the selected budget is ₦0.");
     }
   }
@@ -453,7 +458,7 @@ function biggestCatch(fields, verdictData) {
   const candidates = [
     ["Nigeria access", fields.nigeriaAccess.answer, /not (?:available|supported)|unavailable|excluded|blocked|prohibited/i, 100],
     ["Legitimacy", fields.legitimacy.answer, /scam|fraud|fake|phishing|warning|regulatory/i, 100],
-    ["Starting cost", fields.startingCost.answer, /required|mandatory|upfront|deposit|subscription|fee/i, 80],
+    ["Starting cost", fields.startingCost.answer, /(?:required|mandatory|upfront|deposit|subscription|fee)/i, 80],
     ["Withdrawal", fields.withdrawal.answer, /threshold|minimum|processing|wait|condition|limit/i, 60],
     ["Availability", fields.availability.answer, /limited|waitlist|invite|project[- ]dependent|not guaranteed/i, 70],
     ["Earnings", fields.earnings.answer, /vary|varies|depends|not guaranteed|competitive/i, 55],
