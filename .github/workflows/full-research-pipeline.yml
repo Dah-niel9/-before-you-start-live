@@ -19,4 +19,4 @@ jobs:
         run: node full-research-pipeline.test.mjs
 # trigger full pipeline
 
-# research extraction retest
+# enforce field-quality assertions
