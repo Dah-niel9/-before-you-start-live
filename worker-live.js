@@ -394,6 +394,9 @@ function fieldScopedAnswer(packet) {
     const explicitNoMandatory = /\b(?:no mention of mandatory|no mandatory|no required|not mandatory|not required|no registration fee|no deposit|no required purchases|without (?:a )?(?:mandatory|required) (?:purchase|fee|subscription|cost))\b/i.test(joined);
     const explicitMandatory = /\b(?:mandatory|required|must pay|must purchase|cannot start without|needed to start|required to start|upfront fee|registration fee|deposit)\b/i.test(joined);
     const softEstimate = /\b(?:generally required|typically required|often requires|can cost|may cost|budget|investment of|safety net|initial investment)\b/i.test(joined);
+    if (explicitNoMandatory && !softEstimate) {
+      return cleanAnswer(joined);
+    }
     if (explicitNoMandatory || !explicitMandatory || (softEstimate && !/\b(?:mandatory|required|must pay|must purchase|cannot start without|needed to start|required to start)\b/i.test(joined))) {
       return NO_EVIDENCE;
     }
