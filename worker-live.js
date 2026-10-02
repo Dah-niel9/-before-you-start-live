@@ -447,6 +447,17 @@ function answerFromPacket(packet) {
   if (answer === NO_EVIDENCE) return NO_EVIDENCE;
 
   const scopedPacket = {...packet, answer};
+
+  // A clean field-specific negative such as "no registration fee" is valid
+  // evidence even when the same source set contains unrelated requirements.
+  // Do not let those unrelated requirements turn a clear no-fee answer into
+  // a false conflict.
+  if ((packet.key === "startingCost" || packet.key === "realCash") &&
+      /\b(?:no registration fee|no mandatory|no required|not required|no deposit|no mandatory cash cost)\b/i.test(answer) &&
+      !/\b(?:\$\s*[1-9]|₦\s*[1-9]|ngn\s*[1-9]|usd\s*[1-9]|mandatory\s+(?:cost|fee|purchase|subscription)\s+of)\b/i.test(answer)) {
+    return answer;
+  }
+
   if (hasMaterialSourceConflict(scopedPacket)) return NO_EVIDENCE;
 
   if (!answerScopeValid(scopedPacket)) return NO_EVIDENCE;
