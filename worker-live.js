@@ -414,6 +414,19 @@ function fieldScopedAnswer(packet) {
     if (/\b(?:\$\s*\d|usd|₦\s*\d|ngn\s*\d|naira|tools?|software|subscription|outsourc(?:e|ing)|video production|per video)\b/i.test(joined)) {
       return NO_EVIDENCE;
     }
+    // Generic statements that an opportunity uses internet/data are not enough
+    // for a real-cost field. Require a measured quantity, rate, or explicit
+    // opportunity-specific usage estimate.
+    if (!/\b\d+(?:\.\d+)?\s*(?:gb|mb|kb|tb)\b|\b(?:\d+(?:\.\d+)?\s*(?:naira|ngn|₦)|per\s+(?:video|upload|download|month|week)|spent|spending|uses?\s+\d+)\b/i.test(joined)) {
+      return NO_EVIDENCE;
+    }
+  }
+
+  if (packet.key === "checkAccessibility") {
+    const joined = kept.join(" ");
+    if (joined.trim().length < 40 || !/\b(?:Nigeria|Nigerian|accessible|access|eligible|available|device|KYC|identity|ID|verification)\b/i.test(joined)) {
+      return NO_EVIDENCE;
+    }
   }
 
   if (packet.key === "opportunityCost") {
