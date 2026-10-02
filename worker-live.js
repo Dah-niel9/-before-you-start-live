@@ -333,6 +333,11 @@ function fieldScopedAnswer(packet) {
   const raw = cleanAnswer(packet.answer);
   if (!raw || raw === NO_EVIDENCE) return NO_EVIDENCE;
 
+  if ((packet.key === "startingCost" || packet.key === "realCash") &&
+      /\b(?:no registration fee|no mandatory|no required|not required|no deposit|no mandatory cash cost)\b/i.test(raw)) {
+    return raw;
+  }
+
   // Research answers can contain a useful field-specific sentence plus
   // unrelated neighboring facts. Keep the relevant sentences instead of
   // discarding the entire answer because one sentence wandered.
@@ -370,7 +375,7 @@ function fieldScopedAnswer(packet) {
       neighbor: /\b(?:course|training|academy|tuition|job listing|indeed|salary|earnings?|income|pay rate)\b/i
     },
     checkWorthwhile: {
-      neighbor: /\b(?:course|training|academy|tuition|branding|channel art|stock footage|first-year investment|earnings?|income|pay rate)\b/i
+      neighbor: /\b(?:course|training|academy|tuition|branding|channel art|stock footage|first-year investment|payment threshold|withdrawal threshold|payment method|bank transfer|paypal|adsense|payment cycle)\b/i
     }
   };
 
