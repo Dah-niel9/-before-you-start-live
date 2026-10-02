@@ -334,7 +334,8 @@ function fieldScopedAnswer(packet) {
   if (!raw || raw === NO_EVIDENCE) return NO_EVIDENCE;
 
   if ((packet.key === "startingCost" || packet.key === "realCash") &&
-      /\b(?:no registration fee|no mandatory|no required|not required|no deposit|no mandatory cash cost)\b/i.test(raw)) {
+      /\b(?:no registration fee|no mandatory|no required|not required|no deposit|no mandatory cash cost)\b/i.test(raw) &&
+      !/\b(?:optional|recommended|course|training|academy|outsourc(?:e|ing)|branding|channel art|first-year|properly resourced)\b/i.test(raw)) {
     return raw;
   }
 
