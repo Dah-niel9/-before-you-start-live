@@ -359,6 +359,9 @@ function fieldScopedAnswer(packet) {
     },
     opportunityCost: {
       neighbor: /\b(?:course price|training price|tuition|subscription price|course|academy|training)\b/i
+    },
+    realCash: {
+      neighbor: /\b(?:course price|training price|tuition|course|academy|training|branding|channel art|intro|outro|optional|recommended|properly resourced)\b/i
     }
   };
 
