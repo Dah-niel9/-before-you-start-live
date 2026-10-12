@@ -1,0 +1,43 @@
+name: Understanding Evidence Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_groq:
+        description: "Run live Groq tests (uses free-tier API quota)"
+        type: boolean
+        required: true
+        default: false
+  push:
+    branches: [architecture-research-v1]
+    paths:
+      - "tests/understanding-harness.mjs"
+      - ".github/workflows/understanding-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Offline evidence harness checks
+        run: node tests/understanding-harness.mjs
+      - name: Run live Groq model comparisons
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_groq }}
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODELS: openai/gpt-oss-20b,openai/gpt-oss-120b
+        run: |
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "::error::Missing GROQ_API_KEY repository Actions secret."
+            exit 1
+          fi
+          node tests/understanding-harness.mjs --live
