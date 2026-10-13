@@ -1,0 +1,47 @@
+name: Understanding Evaluation
+
+on:
+  push:
+    branches:
+      - architecture-research-v1
+    paths:
+      - 'tests/understanding-harness.mjs'
+      - '.github/workflows/understanding-evaluation.yml'
+  workflow_dispatch:
+    inputs:
+      run_live:
+        description: 'Run Groq model tests (uses free-tier quota)'
+        required: true
+        type: boolean
+        default: false
+      models:
+        description: 'Comma-separated Groq model IDs'
+        required: false
+        default: 'openai/gpt-oss-20b,openai/gpt-oss-120b'
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    if: github.ref == 'refs/heads/architecture-research-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline harness checks
+        run: node tests/understanding-harness.mjs
+      - name: Live Groq evaluation (manual opt-in only)
+        if: github.event_name == 'workflow_dispatch' && inputs.run_live == true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODELS: ${{ inputs.models }}
+        run: |
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "::error::GROQ_API_KEY repository secret is missing."
+            exit 1
+          fi
+          node tests/understanding-harness.mjs --live
