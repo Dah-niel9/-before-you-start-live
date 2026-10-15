@@ -98,6 +98,7 @@ async function main(){
     checkFixture(fixture);
     const file=resolve(option("--out")||"tests/fixtures/real-evidence-capture.json");
     await mkdir(dirname(file),{recursive:true});await writeFile(file,JSON.stringify(fixture,null,2)+"\n",{flag:"wx"});
+    for(const field of fixture.fields){console.log(JSON.stringify({event:"captured_evidence",field:field.key,workerAnswer:field.workerAnswer,sources:field.sources.map(s=>({id:s.id,url:s.url,excerpt:s.content.slice(0,500)}))}));}
     console.log("Saved test-only evidence to "+file+"; verify original pages before treating claims as facts.");
     return;
   }
