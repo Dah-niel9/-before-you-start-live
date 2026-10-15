@@ -6,6 +6,7 @@ on:
       - architecture-research-v1
     paths:
       - 'tests/understanding-harness.mjs'
+      - 'tests/real-evidence.mjs'
       - '.github/workflows/understanding-evaluation.yml'
   workflow_dispatch:
     inputs:
@@ -34,6 +35,8 @@ jobs:
           node-version: '22'
       - name: Offline harness checks
         run: node tests/understanding-harness.mjs
+      - name: Offline real-evidence capture/replay checks
+        run: node tests/real-evidence.mjs --self-test
       - name: Live Groq evaluation (manual opt-in only)
         if: github.event_name == 'workflow_dispatch' && inputs.run_live == true
         env:
