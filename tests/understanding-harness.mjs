@@ -81,6 +81,8 @@ function makeMessages(test) {
     })}
   ];
 }
+// Scenario-specific checks use meaning-bearing patterns, sources and missing facts.
+// This is still a small heuristic harness, not a general semantic entailment judge.
 function validateOutput(test, value) {
   const errors=[];
   if (!value || typeof value!=="object" || Array.isArray(value)) return ["Response is not a JSON object"];
@@ -88,12 +90,43 @@ function validateOutput(test, value) {
   if (!["established","partially_established","not_established"].includes(value.status)) errors.push("Invalid status");
   if (!Array.isArray(value.supporting_sources)) errors.push("Missing supporting_sources");
   else if (value.supporting_sources.some(id=>!test.evidence.some(s=>s.id===id))) errors.push("Invented source ID");
-  if (!Array.isArray(value.missing)) errors.push("Missing missing[]");
+  if (!Array.isArray(value.missing) || value.missing.some(x=>typeof x!=="string")) errors.push("Invalid missing[]");
   if (typeof value.conflict!=="boolean") errors.push("Invalid conflict");
-  const a=String(value.answer||"").toLowerCase();
-  for (const x of test.mustContain) if (!a.includes(x.toLowerCase())) errors.push("Expected phrase absent: "+x);
-  for (const x of test.mustNotContain) if (a.includes(x.toLowerCase())) errors.push("Forbidden phrase present: "+x);
-  if (value.status==="not_established" && value.supporting_sources?.length) errors.push("Unsupported answer cites evidence");
+  if (errors.length) return errors;
+  const a=value.answer.toLowerCase();
+  const m=value.missing.join(" ").toLowerCase();
+  const all=a+" "+m;
+  const cites=id=>value.supporting_sources.includes(id);
+  const requireFact=(ok,message)=>{if(!ok)errors.push(message);};
+  switch(test.id) {
+    case "withdrawal-country":
+      requireFact(/month|every 30 days/i.test(a),"Missing supported monthly payout schedule");
+      requireFact(/threshold|minimum|limit/i.test(all),"Missing threshold distinction");
+      requireFact(/nigeri|country|local|region/i.test(all) && /unknown|unclear|not (?:known|specified|established|confirmed|provided)|no (?:clear|specific)|varies/i.test(all),"Must acknowledge Nigeria-specific threshold is unknown");
+      requireFact(!/(?:nigeria(?:n|'s)?|nigerian)[^.!?]{0,45}\$100|\$100[^.!?]{0,45}(?:nigeria|nigerian)/i.test(a),"Misapplies US $100 threshold to Nigeria");
+      requireFact(cites("s2"),"Monthly schedule must cite s2");
+      requireFact(value.status==="partially_established","Known schedule plus unknown local threshold requires partial status");
+      break;
+    case "kyc-stage":
+      requireFact(/(?:id|identity|verif)/i.test(a) && /(?:payment|payout|monetiz)/i.test(a),"Must identify ID/payment stage");
+      requireFact(/(?:not|before|without|rather than)/i.test(a) && /(?:start|creat|publish|work)/i.test(a),"Must distinguish starting work from payout ID");
+      requireFact(cites("s2"),"Payment-stage claim must cite s2");
+      requireFact(value.status==="established" || value.status==="partially_established","Must report supported KYC distinction");
+      break;
+    case "cost-optional":
+      requireFact(/optional|not (?:required|mandatory|necessary)|voluntary|can choose/i.test(a) && /(?:\$50|course|training)/i.test(a),"Must explain $50 training is optional");
+      requireFact(!/(?:must|need to|required to|mandatory)[^.!?]{0,25}(?:pay|\$50)/i.test(a),"Wrongly treats optional course as mandatory");
+      requireFact(/(?:unknown|unclear|not (?:established|known|specified|confirmed)|no (?:clear|evidence)|other|mandatory|required)/i.test(all),"Must not infer all starting costs are zero");
+      requireFact(cites("s1"),"Optional-course claim must cite s1");
+      requireFact(value.status==="partially_established","Optional cost known; required total not established");
+      break;
+    case "unfamiliar-platform":
+      requireFact(!/(?:zetatask)[^.!?]{0,40}(?:pays? (?:via|by|with)|uses?) paypal/i.test(a),"Wrongly attributes PayPal to ZetaTask");
+      requireFact(/(?:unknown|unclear|not (?:known|established|specified|confirmed|provided)|no (?:clear|evidence)|cannot (?:confirm|establish))/i.test(all),"Must acknowledge missing ZetaTask payout evidence");
+      requireFact(value.status==="not_established","Payout method must remain unestablished");
+      requireFact(!cites("s1"),"Unrelated TaskHub source cannot support ZetaTask payout");
+      break;
+  }
   return errors;
 }
 async function callGroq(test,model,key) {
@@ -109,16 +142,25 @@ async function callGroq(test,model,key) {
 }
 const live=process.argv.includes("--live");
 if (!live) {
+  const examples=[
+    {id:"withdrawal-country",good:{answer:"Payments are generally monthly after an applicable threshold, but Nigeria's specific threshold is not provided.",status:"partially_established",supporting_sources:["s2"],missing:["Nigeria-specific threshold"],conflict:false},bad:{answer:"No clear evidence found.",status:"not_established",supporting_sources:[],missing:[],conflict:false}},
+    {id:"kyc-stage",good:{answer:"ID is required when setting up monetization payments, not for starting work.",status:"established",supporting_sources:["s2"],missing:[],conflict:false},bad:{answer:"ID is required to start creating videos.",status:"established",supporting_sources:["s2"],missing:[],conflict:false}},
+    {id:"cost-optional",good:{answer:"The $50 training course is optional, not a required starting fee. Other mandatory costs are unknown.",status:"partially_established",supporting_sources:["s1"],missing:["Other required starting costs"],conflict:false},bad:{answer:"You must pay $50 to start.",status:"established",supporting_sources:["s1"],missing:[],conflict:false}},
+    {id:"unfamiliar-platform",good:{answer:"ZetaTask's payout method is not established by this evidence.",status:"not_established",supporting_sources:[],missing:["ZetaTask payout methods in Nigeria"],conflict:false},bad:{answer:"ZetaTask pays by PayPal.",status:"established",supporting_sources:["s1"],missing:[],conflict:false}}
+  ];
   for (const t of cases) {
     assert.equal(makeMessages(t)[1].role,"user");
-    assert.deepEqual(validateOutput(t,{answer:"",status:"unknown",supporting_sources:["fake"],missing:[],conflict:false}).length>0,true);
-    console.log("READY",t.id,"sources:",t.evidence.length);
+    const example=examples.find(x=>x.id===t.id);
+    assert.deepEqual(validateOutput(t,example.good),[],t.id+" should accept a grounded answer");
+    assert.ok(validateOutput(t,example.bad).length>0,t.id+" should reject a wrong answer");
+    console.log("READY",t.id,"positive and negative checks passed");
   }
   console.log("Offline harness checks passed. No API requests made.");
 } else {
   const key=process.env.GROQ_API_KEY;
   if (!key) throw new Error("Set GROQ_API_KEY in your local environment; never paste it into source code.");
   const models=(process.env.GROQ_MODELS||"openai/gpt-oss-20b,openai/gpt-oss-120b").split(",").map(x=>x.trim()).filter(Boolean);
+  let allPassed=true;
   for (const model of models) {
     let passed=0,tokens=0;
     for (const t of cases) {
@@ -131,8 +173,10 @@ if (!live) {
         console.log(JSON.stringify({model,case:t.id,pass:errors.length===0,errors,answer:result.value.answer,
           status:result.value.status,sources:result.value.supporting_sources,tokens:result.usage?.total_tokens,
           ms:Date.now()-start}));
-      } catch(e) {console.error(JSON.stringify({model,case:t.id,error:String(e.message)}));}
+      } catch(e) {console.error(JSON.stringify({model,case:t.id,error:String(e.message)})); allPassed=false;}
     }
     console.log(JSON.stringify({model,passed,total:cases.length,totalTokens:tokens}));
+    if (passed!==cases.length) allPassed=false;
   }
+  if (!allPassed) process.exitCode=1;
 }
