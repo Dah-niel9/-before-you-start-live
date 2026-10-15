@@ -48,39 +48,3 @@ jobs:
             exit 1
           fi
           node tests/understanding-harness.mjs --live
-
-  one_time_real_evidence:
-    if: github.event_name == 'push' && github.event.head_commit.message == 'Run single Fiverr real-evidence research (2 credits max)'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Capture exactly one advanced Tavily search (expected 2 credits)
-        env:
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-        run: |
-          if [ -z "$TAVILY_API_KEY" ]; then
-            echo "::error::TAVILY_API_KEY GitHub Actions secret is missing. No Tavily search was made."
-            exit 1
-          fi
-          node tests/real-evidence.mjs --capture --name Fiverr --fields startingCost --out tests/fixtures/fiverr-starting-cost-real.json
-      - name: Replay real excerpts through GPT-OSS 120B
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: |
-          if [ -z "$GROQ_API_KEY" ]; then
-            echo "::error::GROQ_API_KEY GitHub Actions secret is missing. No Groq request was made."
-            exit 1
-          fi
-          node tests/real-evidence.mjs --replay tests/fixtures/fiverr-starting-cost-real.json
-      - name: Save captured public research excerpts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fiverr-starting-cost-evidence
-          path: tests/fixtures/fiverr-starting-cost-real.json
-          if-no-files-found: ignore
-          retention-days: 3
