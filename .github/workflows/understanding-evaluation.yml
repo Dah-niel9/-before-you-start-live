@@ -34,11 +34,11 @@ jobs:
           node-version: '22'
       - name: Offline harness checks
         run: node tests/understanding-harness.mjs
-      - name: Live Groq evaluation (manual opt-in only)
-        if: github.event_name == 'workflow_dispatch' && inputs.run_live == true
+      - name: Live Groq evaluation (one-time partial-evidence retest)
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_live == true)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODELS: ${{ inputs.models }}
+          GROQ_MODELS: ${{ github.event_name == 'push' && 'openai/gpt-oss-20b,openai/gpt-oss-120b' || inputs.models }}
         run: |
           if [ -z "$GROQ_API_KEY" ]; then
             echo "::error::GROQ_API_KEY repository secret is missing."
