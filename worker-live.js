@@ -1,4 +1,5 @@
 import {understandCoreField} from "./understanding.js";
+import {deriveAssessments} from "./derived-assessments.js";
 const NO_EVIDENCE = "No clear evidence found.";
 
 const FIELD_CONTRACTS = [
@@ -692,11 +693,9 @@ export async function handleResearch(request,env) {
     const profile=body?.profile||{};
     if (!name) return json({ok:false,error:"Opportunity name is required."},400);
 
-    // Step 1: research each core question, then interpret its actual source excerpts.
-    // The seven existing derived searches are temporary until Step 2 replaces them.
-    const results=await Promise.all(FIELD_CONTRACTS.map(async contract => {
+    // Only the 15 core questions perform research. The seven assessments are derived.
+    const results=await Promise.all(FIELD_CONTRACTS.filter(c=>c.group==="core").map(async contract => {
       const result=await runFieldResearch({env,name,claim,url,profile,contract});
-      if(contract.group!=="core")return result;
       try {
         const understood=await understandCoreField({name,contract,packet:result.packet,apiKey:env.GROQ_API_KEY});
         result.packet.answer=understood.answer;
@@ -720,6 +719,8 @@ export async function handleResearch(request,env) {
       allSources.push(...result.packet.sources.map(s=>({...s,researchKey:result.packet.key})));
       if (!result.packet.ok || result.packet.understanding?.error) failed.push({key:result.packet.key,detail:result.error});
     }
+
+    Object.assign(fields,deriveAssessments(fields,FIELD_CONTRACTS,profile));
 
     const sourceMap=new Map();
     for (const source of allSources) {
