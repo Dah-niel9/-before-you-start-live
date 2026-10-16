@@ -2,11 +2,11 @@
 // Exactly one Worker API request, with 15 core Tavily searches.
 import {handleResearch,FIELD_CONTRACTS} from "../worker-live.js";
 import {writeFile,mkdir} from "node:fs/promises";
-const tavily=process.env.TAVILY_TEST_API_KEY;
+const tavily=process.env.TAVILY_API_KEY;
 const groq=process.env.GROQ_API_KEY;
 const name=process.env.TEST_OPPORTUNITY?.trim();
 if(process.env.CONFIRM_LIVE_RESEARCH!=="YES_15_ADVANCED_SEARCHES")throw Error("Explicit 15-search confirmation missing.");
-if(!tavily||!groq)throw Error("TAVILY_TEST_API_KEY and GROQ_API_KEY must be configured as GitHub Actions secrets.");
+if(!tavily||!groq)throw Error("TAVILY_API_KEY and GROQ_API_KEY must be configured as GitHub Actions secrets.");
 if(!name||name.length>110)throw Error("TEST_OPPORTUNITY must be 1–110 characters.");
 if(FIELD_CONTRACTS.filter(c=>c.group==="core").length!==15)throw Error("Research count changed; refusing to run.");
 const request=new Request("https://example.invalid/api/research",{method:"POST",headers:{"content-type":"application/json"},
