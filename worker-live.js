@@ -1,3 +1,4 @@
+import {understandCoreField} from "./understanding.js";
 const NO_EVIDENCE = "No clear evidence found.";
 
 const FIELD_CONTRACTS = [
@@ -682,7 +683,7 @@ export default {
 
 export async function handleResearch(request,env) {
   try {
-    if (!env.TAVILY_API_KEY) return json({ok:false,error:"Live Research is not configured yet."},500);
+    if (!env.TAVILY_API_KEY || !env.GROQ_API_KEY) return json({ok:false,error:"Live Research and Understanding must both be configured."},500);
 
     const body=await request.json();
     const name=String(body?.name||"").trim();
@@ -691,9 +692,25 @@ export async function handleResearch(request,env) {
     const profile=body?.profile||{};
     if (!name) return json({ok:false,error:"Opportunity name is required."},400);
 
-    const results=await Promise.all(FIELD_CONTRACTS.map(contract =>
-      runFieldResearch({env,name,claim,url,profile,contract})
-    ));
+    // Step 1: research each core question, then interpret its actual source excerpts.
+    // The seven existing derived searches are temporary until Step 2 replaces them.
+    const results=await Promise.all(FIELD_CONTRACTS.map(async contract => {
+      const result=await runFieldResearch({env,name,claim,url,profile,contract});
+      if(contract.group!=="core")return result;
+      try {
+        const understood=await understandCoreField({name,contract,packet:result.packet,apiKey:env.GROQ_API_KEY});
+        result.packet.answer=understood.answer;
+        result.packet.understanding={status:understood.status,missing:understood.missing,
+          conflict:understood.conflict,sourceUrls:understood.sourceUrls};
+      } catch(error) {
+        // Fail closed: never silently revert to the old unreliable Tavily summary.
+        result.packet.answer=NO_EVIDENCE;
+        result.packet.understanding={status:"not_established",missing:["Understanding could not verify this field"],
+          conflict:false,sourceUrls:[],error:"Understanding unavailable"};
+        result.error=error instanceof Error?error.message:String(error);
+      }
+      return result;
+    }));
 
     const fields={};
     const allSources=[];
@@ -701,7 +718,7 @@ export async function handleResearch(request,env) {
     for (const result of results) {
       fields[result.packet.key]=result.packet;
       allSources.push(...result.packet.sources.map(s=>({...s,researchKey:result.packet.key})));
-      if (!result.packet.ok) failed.push({key:result.packet.key,detail:result.error});
+      if (!result.packet.ok || result.packet.understanding?.error) failed.push({key:result.packet.key,detail:result.error});
     }
 
     const sourceMap=new Map();
@@ -739,7 +756,8 @@ export async function handleResearch(request,env) {
         extract:p.extract||contractFor(key)?.extract||"",
         answer:p.answer||NO_EVIDENCE,
         sourceCount:Array.isArray(p.sources)?p.sources.length:0,
-        researchKey:key
+        researchKey:key,
+        ...(p.understanding?{understanding:p.understanding}:{})
       }])),
       failedFields:failed
     });
