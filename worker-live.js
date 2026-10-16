@@ -62,6 +62,7 @@ function fieldGuard(key) {
 // of what evidence is needed, and interpretation remains a separate step.
 const FIELD_SEARCH_TERMS = {
   opportunity:"what is it how it works tasks services official explanation",
+  workType:"type of work tasks activities services responsibilities",
   nigeriaAccess:"Nigeria eligibility supported countries geographic restrictions",
   availability:"currently active accepting new users sign up availability",
   device:"phone mobile laptop computer device requirements",
@@ -73,9 +74,10 @@ const FIELD_SEARCH_TERMS = {
   firstMoney:"time to first payment approval waiting period",
   legitimacy:"legitimate complaints scam warnings regulation reputation",
   dataCost:"internet data connection bandwidth required",
+  opportunityCost:"risks time alternatives opportunity costs",
   timeCost:"hours time commitment schedule work requirements"
 };
-function fieldPrompt(name, claim, url, contract, profile) {
+export function fieldPrompt(name, claim, url, contract, profile) {
   const opportunity=String(name||"").trim().slice(0,110);
   const terms=FIELD_SEARCH_TERMS[contract.key] ||
     String(contract.question||"").replace(/[?]/g,"").slice(0,160);
