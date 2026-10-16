@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import {readFile,writeFile,mkdir} from "node:fs/promises";
 import {resolve,dirname} from "node:path";
-import {FIELD_CONTRACTS,runFieldResearch} from "../worker-live.js";
+import {FIELD_CONTRACTS,runFieldResearch,fieldPrompt} from "../worker-live.js";
 
 const core=FIELD_CONTRACTS.filter(x=>x.group==="core");
 const argv=process.argv.slice(2);
@@ -96,6 +96,19 @@ async function main(){
     assert.ok(validateInterpretation(fixture.fields[0],{answer:"Cost $50",status:"established",supporting_sources:["s9"],missing:[],conflict:false}).length);
     const audit=auditSources({key:"startingCost",sources:[{id:"s1",title:"Is it free?",url:"https://www.quora.com/question",content:"Is it free?"},{id:"s2",title:"Official fees",url:"https://help.fiverr.com/hc/en-us/example",content:"Some new freelancers may be required to pay a one-time fee for identity verification."}]},"Fiverr");
     assert.equal(audit.officialSources,1);assert.equal(audit.thinExcerpts,1);assert.equal(audit.costRelevantExcerpts,1);
+    // Test the actual discovery query used by the Worker; no network request.
+    const starting=core.find(x=>x.key==="startingCost");
+    const query=fieldPrompt("Fiverr","","",starting,{});
+    assert.match(query,/Fiverr/);assert.match(query,/mandatory signup fee/);
+    assert.match(query,/Nigeria/);assert.ok(query.length<500);
+    assert.doesNotMatch(query,/Return a concise factual research answer/);
+    const another=fieldPrompt("Microworkers","","",starting,{});
+    assert.match(another,/Microworkers/);assert.doesNotMatch(another,/Fiverr/);
+    const withdrawal=fieldPrompt("Fiverr","","",core.find(x=>x.key==="withdrawal"),{});
+    assert.match(withdrawal,/minimum payout threshold/);
+    assert.doesNotMatch(withdrawal,/mandatory signup fee/);
+    const unknown=fieldPrompt("Unfamiliar opportunity","","",core.find(x=>x.key==="device"),{});
+    assert.match(unknown,/device requirements/);
     console.log("PASS: fixture, source-ID and offline source-quality checks; no Tavily/Groq calls");
     return;
   }
