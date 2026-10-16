@@ -57,32 +57,35 @@ function fieldGuard(key) {
   return guards[key] || "";
 }
 
+// A search engine needs short discovery terms, not an instruction essay.
+// This is generic across opportunities; the field contract remains the source
+// of what evidence is needed, and interpretation remains a separate step.
+const FIELD_SEARCH_TERMS = {
+  opportunity:"what is it how it works tasks services official explanation",
+  nigeriaAccess:"Nigeria eligibility supported countries geographic restrictions",
+  availability:"currently active accepting new users sign up availability",
+  device:"phone mobile laptop computer device requirements",
+  kyc:"identity verification KYC ID requirements signup withdrawal",
+  payment:"how earnings paid payment methods Nigeria",
+  withdrawal:"withdraw earnings minimum payout threshold processing time Nigeria",
+  startingCost:"free to join mandatory signup fee upfront cost required subscription",
+  earnings:"earnings rates fees commission typical pay evidence",
+  firstMoney:"time to first payment approval waiting period",
+  legitimacy:"legitimate complaints scam warnings regulation reputation",
+  dataCost:"internet data connection bandwidth required",
+  timeCost:"hours time commitment schedule work requirements"
+};
 function fieldPrompt(name, claim, url, contract, profile) {
-  const context = [
-    `Opportunity: "${name}".`,
-    claim ? `User's description: "${claim}".` : "",
-    url ? `Reference URL supplied by user: ${url}` : "",
-    "The user is in Nigeria.",
-    profile?.devices?.length ? `Devices: ${profile.devices.join(", ")}.` : "",
-    profile?.budgetLabel ? `Budget: ${profile.budgetLabel}.` : "",
-    profile?.experience ? `Experience: ${profile.experience}.` : "",
-    profile?.time ? `Available time: ${profile.time}.` : "",
-    profile?.goals?.length ? `Goal: ${profile.goals.join(", ")}.` : ""
-  ].filter(Boolean).join(" ");
-
-  return [
-    context,
-    "",
-    `Research question: ${contract.question}`,
-    `What to extract: ${contract.extract}`,
-    fieldGuard(contract.key),
-    "",
-    "Return a concise factual research answer for this question only.",
-    "Use exact numbers and currencies when the sources provide them.",
-    "Clearly distinguish mandatory from optional costs and documented facts from uncertainty.",
-    "Do not answer neighboring questions. Do not use unrelated platforms, companies, job listings, or industry statistics.",
-    "If the available sources do not establish the answer, say exactly: No clear evidence found."
-  ].join("\n");
+  const opportunity=String(name||"").trim().slice(0,110);
+  const terms=FIELD_SEARCH_TERMS[contract.key] ||
+    String(contract.question||"").replace(/[?]/g,"").slice(0,160);
+  const supplied=String(url||"").trim();
+  let host="";
+  if(supplied){try{host=new URL(supplied).hostname.replace(/^www\\./,"");}catch{}}
+  // Never restrict results to an official site: many opportunities have none.
+  // Include the name on every search so a neighboring platform cannot dominate.
+  const parts=[`"${opportunity}"`,terms,"Nigeria",host?host:""];
+  return parts.filter(Boolean).join(" ").slice(0,500);
 }
 
 async function tavilySearch(env, query) {
