@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import {FIELD_CONTRACTS} from "../worker-live.js";
+import {buildUnderstandingInput,validateUnderstanding,understandCoreField} from "../understanding.js";
+const core=FIELD_CONTRACTS.filter(f=>f.group==="core");
+assert.equal(core.length,15);
+const contract=core.find(f=>f.key==="startingCost");
+const packet={key:"startingCost",ok:true,answer:"You must pay $50",sources:[
+  {title:"Optional training",url:"https://example.org/training",content:"An optional course costs $50."},
+  {title:"Irrelevant",url:"https://example.org/earnings",content:"A freelancer could earn $200 monthly."}
+]};
+const input=buildUnderstandingInput({name:"Example platform",contract,packet});
+assert.equal(input.evidence.length,2);
+assert.match(input.rule,/mandatory or optional/i);
+assert.deepEqual(validateUnderstanding({answer:"The $50 course is optional; other required costs are unknown.",status:"partially_established",supporting_sources:["s1"],missing:["Other mandatory costs"],conflict:false},input),[]);
+assert.ok(validateUnderstanding({answer:"Costs $50",status:"established",supporting_sources:["s9"],missing:[],conflict:false},input).length);
+let calls=0;
+const fetcher=async (url,options)=>{
+  calls++;assert.match(url,/api.groq.com/);
+  const request=JSON.parse(options.body);
+  assert.equal(request.model,"openai/gpt-oss-120b");
+  assert.match(request.messages[1].content,/optional course/);
+  return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({
+    answer:"The $50 course is optional; mandatory costs are unknown.",status:"partially_established",
+    supporting_sources:["s1"],missing:["Required costs"],conflict:false})}}]})};
+};
+const result=await understandCoreField({name:"Example platform",contract,packet,apiKey:"offline-test-key",fetcher});
+assert.equal(calls,1);assert.equal(result.status,"partially_established");
+assert.deepEqual(result.sourceUrls,["https://example.org/training"]);
+const empty=await understandCoreField({name:"Example platform",contract,packet:{...packet,sources:[]},apiKey:"offline-test-key",fetcher});
+assert.equal(empty.status,"not_established");assert.equal(calls,1);
+console.log("PASS: 15 core contracts, field-specific input, source-ID validation, mocked Groq call, fail-closed empty evidence. No API requests.");
