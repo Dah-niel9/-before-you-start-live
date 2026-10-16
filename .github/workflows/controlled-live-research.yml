@@ -1,0 +1,45 @@
+name: Controlled Live Research Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      opportunity:
+        description: 'One opportunity to research (e.g. Microworkers)'
+        required: true
+        type: string
+        default: 'Microworkers'
+      confirmation:
+        description: 'Type YES_15_ADVANCED_SEARCHES to authorize one live test (estimated 30 Tavily credits)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    if: github.ref == 'refs/heads/architecture-research-v1' && inputs.confirmation == 'YES_15_ADVANCED_SEARCHES'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check offline Worker integration before live spending
+        run: node tests/worker-pipeline-smoke.mjs
+      - name: One controlled live research check (15 advanced Tavily searches)
+        env:
+          TAVILY_TEST_API_KEY: ${{ secrets.TAVILY_TEST_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TEST_OPPORTUNITY: ${{ inputs.opportunity }}
+          CONFIRM_LIVE_RESEARCH: ${{ inputs.confirmation }}
+        run: node tests/live-research-smoke.mjs
+      - name: Upload evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlled-live-research-report
+          path: tests/artifacts/live-research-report.json
+          if-no-files-found: ignore
+          retention-days: 7
