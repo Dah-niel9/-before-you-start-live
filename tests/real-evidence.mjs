@@ -54,7 +54,8 @@ function auditSources(field,opportunity){
     const official=Boolean(name)&&host.split(".").some(part=>part===name) ||
       (name==="fiverr"&&host==="help.fiverr.com");
     const questionOnly=excerpt.length<120 && (excerpt.endsWith("?")||excerpt.toLowerCase()===String(s.title||"").trim().toLowerCase());
-    const thin=excerpt.length<100||questionOnly;
+    // Short factual statements may still contain useful evidence; question-only or near-empty excerpts do not.
+    const thin=excerpt.length<25||questionOnly;
     const mentionsCost=/(free|fee|cost|pay|paid|charge|subscription|deposit|purchase|verification)/i.test(excerpt);
     const earningsOnly=/(earn|income|make money|monthly|profit)/i.test(excerpt)&&!mentionsCost;
     return {id:s.id,host,official,thin,mentionsCost,earningsOnly,excerptLength:excerpt.length};
