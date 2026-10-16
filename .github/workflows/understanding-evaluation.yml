@@ -12,6 +12,7 @@ on:
       - 'worker-live.js'
       - 'derived-assessments.js'
       - 'tests/derived-assessments.mjs'
+      - 'tests/worker-pipeline-smoke.mjs'
       - '.github/workflows/understanding-evaluation.yml'
   workflow_dispatch:
     inputs:
@@ -46,6 +47,8 @@ jobs:
         run: node tests/understanding-integration.mjs
       - name: Offline seven derived assessments
         run: node tests/derived-assessments.mjs
+      - name: Complete Worker pipeline smoke test (mock Tavily and Groq, zero credits)
+        run: node tests/worker-pipeline-smoke.mjs
       - name: Live Groq evaluation (manual opt-in only)
         if: github.event_name == 'workflow_dispatch' && inputs.run_live == true
         env:
