@@ -64,6 +64,8 @@ try{
  assert.ok(Array.isArray(data.sources)&&data.sources.length===15);
  assert.deepEqual(data.failedFields,[]);
  assert.equal(data.hereDeal,evidenceByField.opportunity);
- assert.ok(data.verdict);\n assert.notEqual(data.verdict,"SKIP","Alternative devices and third-party scam warnings must not trigger SKIP");\n assert.ok(!JSON.stringify(data).includes("laptop or computer is required"),"Must not falsely assert laptop requirement");
+ assert.ok(data.verdict);
+ assert.notEqual(data.verdict,"SKIP","Alternative devices and third-party scam warnings must not trigger SKIP");
+ assert.ok(!JSON.stringify(data).includes("laptop or computer is required"),"Must not falsely assert laptop requirement");
  console.log("PASS: complete Worker API, 15 Tavily + 15 Groq mocks, 22 fields, derived assessments, existing result shape; zero credits.");
 }finally{globalThis.fetch=originalFetch;}
