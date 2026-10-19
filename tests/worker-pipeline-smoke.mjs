@@ -67,5 +67,11 @@ try{
  assert.ok(data.verdict);
  assert.notEqual(data.verdict,"SKIP","Unexpected blockers: "+JSON.stringify({blockers:data.blockers,doesntFit:data.doesntFit,reason:data.whyVerdict,verdictData:data.verdictData}));
  assert.ok(!JSON.stringify(data).includes("laptop or computer is required"),"Must not falsely assert laptop requirement");
+ // A direct fraud finding about the opportunity itself must still block it.
+ evidenceByField.legitimacy="This opportunity is a scam.";
+ const second=await handleResearch(request,{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const secondData=await second.json();
+ assert.equal(secondData.verdict,"SKIP","Direct evidence that the opportunity is a scam must trigger SKIP");
+ assert.ok(secondData.blockers.some(x=>/legitimacy|fraud/i.test(x)));
  console.log("PASS: complete Worker API, 15 Tavily + 15 Groq mocks, 22 fields, derived assessments, existing result shape; zero credits.");
 }finally{globalThis.fetch=originalFetch;}
