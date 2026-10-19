@@ -1,3 +1,4 @@
+import {interpretWithRateLimit} from "./groq-rate-limit.js";
 import {understandCoreField} from "./understanding.js";
 import {deriveAssessments} from "./derived-assessments.js";
 const NO_EVIDENCE = "No clear evidence found.";
@@ -694,21 +695,23 @@ export async function handleResearch(request,env) {
     if (!name) return json({ok:false,error:"Opportunity name is required."},400);
 
     // Only the 15 core questions perform research. The seven assessments are derived.
-    const results=await Promise.all(FIELD_CONTRACTS.filter(c=>c.group==="core").map(async contract => {
-      const result=await runFieldResearch({env,name,claim,url,profile,contract});
+    const coreContracts=FIELD_CONTRACTS.filter(c=>c.group==="core");
+    // Collect 15 research packets first. Groq is then paced separately; no extra Tavily searches.
+    const results=await Promise.all(coreContracts.map(contract =>
+      runFieldResearch({env,name,claim,url,profile,contract})));
+    await interpretWithRateLimit(results.map((result,index)=>async()=>{
       try {
-        const understood=await understandCoreField({name,contract,packet:result.packet,apiKey:env.GROQ_API_KEY});
+        const understood=await understandCoreField({name,contract:coreContracts[index],packet:result.packet,apiKey:env.GROQ_API_KEY});
         result.packet.answer=understood.answer;
         result.packet.understanding={status:understood.status,missing:understood.missing,
           conflict:understood.conflict,sourceUrls:understood.sourceUrls};
       } catch(error) {
-        // Fail closed: never silently revert to the old unreliable Tavily summary.
+        if(error?.status===429)throw error; // Retry this Groq call, not the Tavily search.
         result.packet.answer=NO_EVIDENCE;
         result.packet.understanding={status:"not_established",missing:["Understanding could not verify this field"],
           conflict:false,sourceUrls:[],error:"Understanding unavailable"};
         result.error=error instanceof Error?error.message:String(error);
       }
-      return result;
     }));
 
     const fields={};
