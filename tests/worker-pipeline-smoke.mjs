@@ -46,7 +46,7 @@ try{
   throw Error("Unexpected external call: "+url);
  };
  const request=new Request("https://example.org/api/research",{method:"POST",headers:{"content-type":"application/json"},
- body:JSON.stringify({name:"Example Tasks",profile:{devices:["Android phone"],ids:["None"],budgetLabel:"₦0"}})});
+ body:JSON.stringify({name:"Example Tasks",profile:{devices:["Android phone"],ids:["NIN/National ID"],budgetLabel:"₦0"}})});
  const response=await handleResearch(request,{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
  assert.equal(response.status,200);
  const data=await response.json();
