@@ -73,5 +73,19 @@ try{
  const secondData=await second.json();
  assert.equal(secondData.verdict,"SKIP","Direct evidence that the opportunity is a scam must trigger SKIP");
  assert.ok(secondData.blockers.some(x=>/legitimacy|fraud/i.test(x)));
+ // Optional third-party courses are not a mandatory starting cost or a scam verdict.
+ evidenceByField.legitimacy="Some third-party courses may be scams; the opportunity itself is legitimate.";
+ evidenceByField.startingCost="Registration is free. Optional courses cost $50, but are not required.";
+ const third=await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const thirdData=await third.json();
+ assert.notEqual(thirdData.verdict,"SKIP","Optional courses must not create a zero-budget blocker");
+ assert.ok(!thirdData.blockers.some(x=>/starting cost|legitimacy|fraud/i.test(x)));
+ assert.ok(!/scam|fraud|course|\\$50/i.test(thirdData.biggestCatch||""),"Biggest catch must not elevate optional course scams or costs");
+ // Explicit compulsory fee must still block a zero-budget profile.
+ evidenceByField.startingCost="A mandatory upfront registration fee of $50 is required.";
+ const fourth=await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const fourthData=await fourth.json();
+ assert.equal(fourthData.verdict,"SKIP","Mandatory paid registration must block zero-budget users");
+ assert.ok(fourthData.blockers.some(x=>/starting cost/i.test(x)));
  console.log("PASS: complete Worker API, 15 Tavily + 15 Groq mocks, 22 fields, derived assessments, existing result shape; zero credits.");
 }finally{globalThis.fetch=originalFetch;}
