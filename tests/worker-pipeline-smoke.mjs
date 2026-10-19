@@ -9,14 +9,14 @@ const evidenceByField={
  workType:"This is freelance task work.",
  nigeriaAccess:"Participants in Nigeria are eligible to register.",
  availability:"The platform is currently accepting new participants.",
- device:"A laptop is required for the tasks.",
+ device:"You need a smartphone (Android or iOS) or a laptop/computer to do this work.",
  kyc:"A government ID is required for withdrawal.",
  payment:"Payouts are made by bank transfer.",
  withdrawal:"Withdrawals are processed weekly.",
  startingCost:"Registration has no mandatory fee.",
  earnings:"Workers earn per completed task.",
  firstMoney:"First payment follows approved work and the weekly payout cycle.",
- legitimacy:"The operator publishes its registered company information.",
+ legitimacy:"The opportunity is legitimate, but some third-party courses and providers may be scams.",
  dataCost:"An internet connection is needed to perform the work.",
  timeCost:"Tasks require several hours each week.",
  opportunityCost:"Time spent on tasks cannot be used for other paid work."
@@ -64,6 +64,6 @@ try{
  assert.ok(Array.isArray(data.sources)&&data.sources.length===15);
  assert.deepEqual(data.failedFields,[]);
  assert.equal(data.hereDeal,evidenceByField.opportunity);
- assert.ok(data.verdict);
+ assert.ok(data.verdict);\n assert.notEqual(data.verdict,"SKIP","Alternative devices and third-party scam warnings must not trigger SKIP");\n assert.ok(!JSON.stringify(data).includes("laptop or computer is required"),"Must not falsely assert laptop requirement");
  console.log("PASS: complete Worker API, 15 Tavily + 15 Groq mocks, 22 fields, derived assessments, existing result shape; zero credits.");
 }finally{globalThis.fetch=originalFetch;}
