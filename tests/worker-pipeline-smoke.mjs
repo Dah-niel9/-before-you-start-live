@@ -87,5 +87,25 @@ try{
  const fourthData=await fourth.json();
  assert.equal(fourthData.verdict,"SKIP","Mandatory paid registration must block zero-budget users");
  assert.ok(fourthData.blockers.some(x=>/starting cost/i.test(x)));
+ // Nigeria is not blocked: negated restriction must not become SKIP.
+ evidenceByField.startingCost="Registration has no mandatory fee.";
+ evidenceByField.nigeriaAccess="Nigerian participants are not blocked or prohibited from joining.";
+ const fifth=await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const fifthData=await fifth.json();
+ assert.notEqual(fifthData.verdict,"SKIP","Negated Nigeria restriction must not trigger SKIP");
+ assert.ok(!fifthData.blockers.some(x=>/Nigeria/i.test(x)));
+ // An explicit Nigerian exclusion must still block access.
+ evidenceByField.nigeriaAccess="Nigeria is excluded from registration.";
+ const sixth=await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const sixthData=await sixth.json();
+ assert.equal(sixthData.verdict,"SKIP","Explicit Nigerian exclusion must trigger SKIP");
+ assert.ok(sixthData.blockers.some(x=>/Nigeria/i.test(x)));
+ // An optional course cannot cancel a separate mandatory registration fee.
+ evidenceByField.nigeriaAccess="Participants in Nigeria are eligible to register.";
+ evidenceByField.startingCost="Optional courses cost $50; however, a mandatory registration fee of $20 is required.";
+ const seventh=await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const seventhData=await seventh.json();
+ assert.equal(seventhData.verdict,"SKIP","Separate mandatory fee must block zero-budget users despite optional course");
+ assert.ok(seventhData.blockers.some(x=>/starting cost/i.test(x)));
  console.log("PASS: complete Worker API, 15 Tavily + 15 Groq mocks, 22 fields, derived assessments, existing result shape; zero credits.");
 }finally{globalThis.fetch=originalFetch;}
