@@ -505,6 +505,13 @@ function mandatoryStartingCost(answer){
       /(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s*[1-9]/i.test(clause);
   });
 }
+function nigeriaAccessBlocked(answer){
+  return String(answer||"").split(/[.;\n]|\bbut\b|\bhowever\b/i).some(clause=>{
+    if(/\b(?:not|never|isn't|aren't)\s+(?:currently\s+)?(?:blocked|banned|prohibited|excluded|restricted|unavailable|ineligible)\b/i.test(clause) ||
+       /\bno\s+(?:restriction|ban|prohibition|exclusion)\b/i.test(clause))return false;
+    return /\b(?:not\s+(?:available|supported|eligible|allowed)|unavailable|excluded|blocked|prohibited|banned|ineligible)\b/i.test(clause);
+  });
+}
 function mandatoryComputerOnly(answer){
   const text=String(answer||"");
   // A phone/computer alternative is not a computer-only requirement.
@@ -535,7 +542,7 @@ function makeVerdict(fields, profile) {
     };
   }
 
-  if (containsAny(nigeria,[/not (?:available|supported|eligible|allowed)/i, /unavailable/i, /excluded/i, /blocked/i, /prohibited/i])) {
+  if (nigeriaAccessBlocked(nigeria)) {
     blockers.push("Current research indicates that the opportunity is not accessible from Nigeria.");
   }
 
@@ -616,7 +623,7 @@ function makeVerdict(fields, profile) {
 
 function biggestCatch(fields, verdictData) {
   const candidates = [
-    ["Nigeria access", fields.nigeriaAccess.answer, /not (?:available|supported)|unavailable|excluded|blocked|prohibited/i, 100],
+    ["Nigeria access", fields.nigeriaAccess.answer, nigeriaAccessBlocked(fields.nigeriaAccess.answer)?/./:/a^/, 100],
     ["Legitimacy", fields.legitimacy.answer, directLegitimacyBlocker(fields.legitimacy.answer)?/./:/a^/, 100],
     ["Starting cost", fields.startingCost.answer, mandatoryStartingCost(fields.startingCost.answer)?/./:/a^/, 80],
     ["Withdrawal", fields.withdrawal.answer, /threshold|minimum|processing|wait|condition|limit/i, 60],
