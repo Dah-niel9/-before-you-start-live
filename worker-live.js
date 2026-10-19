@@ -487,6 +487,20 @@ function containsAny(text, patterns) {
   return patterns.some(p => p.test(String(text || "")));
 }
 
+// Only direct, opportunity-wide blockers qualify; mentions of risks or alternatives do not.
+function directLegitimacyBlocker(answer){
+  const text=String(answer||"");
+  if(/(?:courses?|coaches?|training|mentors?|third.party|providers?|services?|offers?|advertisements?|promotions?|some|certain|may|could|risk|warning about|beware|avoid|not all|legitimate)/i.test(text))return false;
+  return /(?:the (?:opportunity|platform|scheme|business|operation)|this (?:opportunity|platform|scheme|business))\\s+(?:is|has been|was)\\s+(?:a\\s+)?(?:scam|fraud|fraudulent|fake|phishing|shut down for fraud)/i.test(text);
+}
+function mandatoryComputerOnly(answer){
+  const text=String(answer||"");
+  if(/(?:smartphone|mobile phone|android|iphone|tablet|phone)\\b[^.\\n]{0,100}\\b(?:or|either|alternatively|also|can use)\\b[^.\\n]{0,100}\\b(?:laptop|computer|desktop)/i.test(text)||
+     /(?:laptop|computer|desktop)\\b[^.\\n]{0,100}\\b(?:or|either|alternatively|also|can use)\\b[^.\\n]{0,100}\\b(?:smartphone|mobile phone|android|iphone|tablet|phone)/i.test(text))return false;
+  if(/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only)/i.test(text))return false;
+  return /(?:requires?|must have|must use|need(?:s)?|only works on)\\s+(?:(?:a|an|the)\\s+)?(?:laptop|computer|desktop)\\b/i.test(text)||
+    /\\b(?:laptop|computer|desktop)\\s+(?:is|are)\\s+(?:strictly\\s+)?(?:required|mandatory|essential)\\b/i.test(text);
+}
 function makeVerdict(fields, profile) {
   const blockers = [];
   const cautions = [];
@@ -512,7 +526,7 @@ function makeVerdict(fields, profile) {
     blockers.push("Current research indicates that the opportunity is not accessible from Nigeria.");
   }
 
-  if (containsAny(legitimacy,[/scam/i,/fraud/i,/fake platform/i,/phishing/i,/official warning/i,/regulatory action/i])) {
+  if (directLegitimacyBlocker(legitimacy)) {
     blockers.push("Current research contains a serious legitimacy or fraud warning.");
   }
 
