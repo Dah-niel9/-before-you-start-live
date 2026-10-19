@@ -499,9 +499,11 @@ function directLegitimacyBlocker(answer){
 }
 function mandatoryStartingCost(answer){
   const text=String(answer||"");
-  if(/(?:optional|not required|not mandatory|voluntary|can choose|may choose|free to start|free registration|no mandatory fee|no required fee|no upfront cost)/i.test(text))return false;
-  return /(?:mandatory|required|must pay|compulsory|upfront|deposit)\b/i.test(text) &&
-    /(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s*[1-9]/i.test(text);
+  return text.split(/[.;\n]|\bbut\b|\bhowever\b/i).some(clause=>{
+    if(/(?:optional|not required|not mandatory|voluntary|can choose|may choose|free to start|free registration|no mandatory fee|no required fee|no upfront cost)/i.test(clause))return false;
+    return /(?:mandatory|required|must pay|compulsory|upfront|deposit)\b/i.test(clause) &&
+      /(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s*[1-9]/i.test(clause);
+  });
 }
 function mandatoryComputerOnly(answer){
   const text=String(answer||"");
