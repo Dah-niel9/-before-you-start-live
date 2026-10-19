@@ -11,6 +11,8 @@ on:
       - 'understanding.js'
       - 'worker-live.js'
       - 'derived-assessments.js'
+      - 'groq-rate-limit.js'
+      - 'tests/groq-rate-limit.mjs'
       - 'tests/derived-assessments.mjs'
       - 'tests/worker-pipeline-smoke.mjs'
       - '.github/workflows/understanding-evaluation.yml'
@@ -47,6 +49,8 @@ jobs:
         run: node tests/understanding-integration.mjs
       - name: Offline seven derived assessments
         run: node tests/derived-assessments.mjs
+      - name: Offline Groq 429 retry and pacing test
+        run: node tests/groq-rate-limit.mjs
       - name: Complete Worker pipeline smoke test (mock Tavily and Groq, zero credits)
         run: node tests/worker-pipeline-smoke.mjs
       - name: Live Groq evaluation (manual opt-in only)
