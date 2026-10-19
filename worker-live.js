@@ -490,8 +490,12 @@ function containsAny(text, patterns) {
 // Only direct, opportunity-wide blockers qualify; mentions of risks or alternatives do not.
 function directLegitimacyBlocker(answer){
   const text=String(answer||"");
-  if(/(?:courses?|coaches?|training|mentors?|third.party|providers?|services?|offers?|advertisements?|promotions?|some|certain|may|could|risk|warning about|beware|avoid|not all|legitimate)/i.test(text))return false;
-  return /(?:the (?:opportunity|platform|scheme|business|operation)|this (?:opportunity|platform|scheme|business))\\s+(?:is|has been|was)\\s+(?:a\\s+)?(?:scam|fraud|fraudulent|fake|phishing|shut down for fraud)/i.test(text);
+  // Only an explicit statement about the opportunity itself can block it.
+  // Warnings about courses, providers or possible risks are not enough.
+  const direct=/(?:the (?:opportunity|platform|scheme|business|operation)|this (?:opportunity|platform|scheme|business))\s+(?:is|has been|was)\s+(?:a\s+)?(?:scam|fraud|fraudulent|fake|phishing|shut down for fraud)\b/i.test(text);
+  if(!direct)return false;
+  if(/(?:not|isn't|is not)\s+(?:a\s+)?(?:scam|fraud|fraudulent|fake)/i.test(text))return false;
+  return true;
 }
 function mandatoryComputerOnly(answer){
   const text=String(answer||"");
