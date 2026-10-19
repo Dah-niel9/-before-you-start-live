@@ -497,6 +497,12 @@ function directLegitimacyBlocker(answer){
   if(/(?:not|isn't|is not)\s+(?:a\s+)?(?:scam|fraud|fraudulent|fake)/i.test(text))return false;
   return true;
 }
+function mandatoryStartingCost(answer){
+  const text=String(answer||"");
+  if(/(?:optional|not required|not mandatory|voluntary|can choose|may choose|free to start|free registration|no mandatory fee|no required fee|no upfront cost)/i.test(text))return false;
+  return /(?:mandatory|required|must pay|compulsory|upfront|deposit)\b/i.test(text) &&
+    /(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s*[1-9]/i.test(text);
+}
 function mandatoryComputerOnly(answer){
   const text=String(answer||"");
   // A phone/computer alternative is not a computer-only requirement.
@@ -538,11 +544,7 @@ function makeVerdict(fields, profile) {
   const cost = fields.startingCost.answer;
   if (profile?.budgetLabel) {
     const zeroBudget = /₦0|0\s*(?:naira|budget)/i.test(String(profile.budgetLabel));
-    const explicitlyNoMandatory = /(?:no|not|without)\s+(?:mandatory|required|upfront)\s+(?:registration|fee|cost|purchase|subscription|payment)/i.test(cost)
-      || /(?:no mandatory|no required|not mandatory|not required)\b/i.test(cost);
-    const positiveMandatory = /(?:mandatory|required|must pay|upfront|deposit|subscription)\b/i.test(cost);
-    const hasPositiveMoney = /(?:₦|ngn|naira|\$|usd|€|eur|£|gbp)\s*[1-9]/i.test(cost);
-    if (zeroBudget && positiveMandatory && !explicitlyNoMandatory && hasPositiveMoney) {
+    if (zeroBudget && mandatoryStartingCost(cost)) {
       blockers.push("The research indicates a required starting cost while the selected budget is ₦0.");
     }
   }
@@ -613,8 +615,8 @@ function makeVerdict(fields, profile) {
 function biggestCatch(fields, verdictData) {
   const candidates = [
     ["Nigeria access", fields.nigeriaAccess.answer, /not (?:available|supported)|unavailable|excluded|blocked|prohibited/i, 100],
-    ["Legitimacy", fields.legitimacy.answer, /scam|fraud|fake|phishing|warning|regulatory/i, 100],
-    ["Starting cost", fields.startingCost.answer, /(?:required|mandatory|upfront|deposit|subscription|fee)/i, 80],
+    ["Legitimacy", fields.legitimacy.answer, directLegitimacyBlocker(fields.legitimacy.answer)?/./:/a^/, 100],
+    ["Starting cost", fields.startingCost.answer, mandatoryStartingCost(fields.startingCost.answer)?/./:/a^/, 80],
     ["Withdrawal", fields.withdrawal.answer, /threshold|minimum|processing|wait|condition|limit/i, 60],
     ["Availability", fields.availability.answer, /limited|waitlist|invite|project[- ]dependent|not guaranteed/i, 70],
     ["Earnings", fields.earnings.answer, /vary|varies|depends|not guaranteed|competitive/i, 55],
