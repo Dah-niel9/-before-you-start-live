@@ -46,7 +46,13 @@ export async function understandCoreField({name,contract,packet,apiKey,fetcher=f
     body:JSON.stringify({model:UNDERSTANDING_MODEL,temperature:0,response_format:{type:"json_object"},
       messages:[{role:"system",content:UNDERSTANDING_SYSTEM},{role:"user",content:JSON.stringify(input)}]})
   });
-  if(!response.ok)throw Error("Understanding request failed (HTTP "+response.status+")");
+  if(!response.ok){
+    const retryAfter=Number(response.headers.get("retry-after"));
+    const error=new Error("Understanding request failed (HTTP "+response.status+")");
+    error.status=response.status;
+    error.retryAfterSeconds=Number.isFinite(retryAfter)&&retryAfter>0?retryAfter:null;
+    throw error;
+  }
   const body=await response.json();
   let output;
   try{output=JSON.parse(body.choices[0].message.content);}catch{throw Error("Understanding returned invalid JSON");}
