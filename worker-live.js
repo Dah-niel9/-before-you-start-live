@@ -495,11 +495,12 @@ function directLegitimacyBlocker(answer){
 }
 function mandatoryComputerOnly(answer){
   const text=String(answer||"");
-  if(/(?:smartphone|mobile phone|android|iphone|tablet|phone)\\b[^.\\n]{0,100}\\b(?:or|either|alternatively|also|can use)\\b[^.\\n]{0,100}\\b(?:laptop|computer|desktop)/i.test(text)||
-     /(?:laptop|computer|desktop)\\b[^.\\n]{0,100}\\b(?:or|either|alternatively|also|can use)\\b[^.\\n]{0,100}\\b(?:smartphone|mobile phone|android|iphone|tablet|phone)/i.test(text))return false;
-  if(/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only)/i.test(text))return false;
-  return /(?:requires?|must have|must use|need(?:s)?|only works on)\\s+(?:(?:a|an|the)\\s+)?(?:laptop|computer|desktop)\\b/i.test(text)||
-    /\\b(?:laptop|computer|desktop)\\s+(?:is|are)\\s+(?:strictly\\s+)?(?:required|mandatory|essential)\\b/i.test(text);
+  // A phone/computer alternative is not a computer-only requirement.
+  const alternative=/(?:smartphone|mobile phone|android|iphone|tablet|phone)\b[^.\n]{0,120}\b(?:or|either|alternatively)\b[^.\n]{0,120}\b(?:laptop|computer|desktop)\b/i.test(text)||
+    /(?:laptop|computer|desktop)\b[^.\n]{0,120}\b(?:or|either|alternatively)\b[^.\n]{0,120}\b(?:smartphone|mobile phone|android|iphone|tablet|phone)\b/i.test(text);
+  if(alternative||/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only)/i.test(text))return false;
+  return /(?:requires?|must have|must use|need(?:s)?|only works on)\s+(?:(?:a|an|the)\s+)?(?:laptop|computer|desktop)\b/i.test(text)||
+    /\b(?:laptop|computer|desktop)\s+(?:is|are)\s+(?:strictly\s+)?(?:required|mandatory|essential)\b/i.test(text);
 }
 function makeVerdict(fields, profile) {
   const blockers = [];
@@ -543,7 +544,7 @@ function makeVerdict(fields, profile) {
   }
 
   const device = fields.device.answer;
-  if (profile?.devices?.length && /(?:requires?|must have|need(?:s)?|only works on)[^.]{0,100}\b(?:laptop|computer|desktop)\b/i.test(device) &&
+  if (profile?.devices?.length && mandatoryComputerOnly(device) &&
       !profile.devices.some(x => /laptop|computer|desktop/i.test(x))) {
     blockers.push("The research indicates that a laptop or computer is required, but the selected profile does not include one.");
   }
