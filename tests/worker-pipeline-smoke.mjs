@@ -47,7 +47,7 @@ try{
  };
  const request=new Request("https://example.org/api/research",{method:"POST",headers:{"content-type":"application/json"},
  body:JSON.stringify({name:"Example Tasks",profile:{devices:["Android phone"],ids:["NIN/National ID"],budgetLabel:"₦0"}})});
- const response=await handleResearch(request,{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const response=await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
  assert.equal(response.status,200);
  const data=await response.json();
  assert.equal(data.ok,true);
@@ -69,7 +69,7 @@ try{
  assert.ok(!JSON.stringify(data).includes("laptop or computer is required"),"Must not falsely assert laptop requirement");
  // A direct fraud finding about the opportunity itself must still block it.
  evidenceByField.legitimacy="This opportunity is a scam.";
- const second=await handleResearch(request,{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const second=await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
  const secondData=await second.json();
  assert.equal(secondData.verdict,"SKIP","Direct evidence that the opportunity is a scam must trigger SKIP");
  assert.ok(secondData.blockers.some(x=>/legitimacy|fraud/i.test(x)));
