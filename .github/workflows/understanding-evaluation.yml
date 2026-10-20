@@ -8,6 +8,7 @@ on:
       - 'tests/understanding-harness.mjs'
       - 'tests/real-evidence.mjs'
       - 'tests/understanding-integration.mjs'
+      - 'tests/evidence-mapping-fixtures.mjs'
       - 'understanding.js'
       - 'worker-live.js'
       - 'derived-assessments.js'
@@ -47,6 +48,8 @@ jobs:
         run: node tests/real-evidence.mjs --self-test
       - name: Offline Understanding integration (mock Groq, zero credits)
         run: node tests/understanding-integration.mjs
+      - name: Offline adversarial evidence-mapping fixtures (15 fields)
+        run: node tests/evidence-mapping-fixtures.mjs
       - name: Offline seven derived assessments
         run: node tests/derived-assessments.mjs
       - name: Offline Groq 429 retry and pacing test
