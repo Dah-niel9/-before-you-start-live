@@ -31,6 +31,9 @@ export function validateUnderstanding(output,input){
   if(!Array.isArray(output.supporting_sources)||output.supporting_sources.some(id=>!input.evidence.some(s=>s.id===id)))errors.push("Invalid source IDs");
   if(!Array.isArray(output.missing)||output.missing.some(x=>typeof x!=="string"))errors.push("Invalid missing facts");
   if(typeof output.conflict!=="boolean")errors.push("Invalid conflict");
+  if(output.conflict===true&&output.status==="established")errors.push("Conflicting evidence cannot be fully established");
+  if(output.status==="not_established"&&output.conflict===true)errors.push("Unknown field cannot claim established conflicting findings");
+  if(output.status==="established"&&output.missing?.length)errors.push("Established field cannot have missing required facts");
   if(output.status==="not_established"&&output.supporting_sources?.length)errors.push("Unknown field cannot cite evidence");
   if(output.status!=="not_established"&&!output.supporting_sources?.length)errors.push("Established facts require citations");
   if(output.status==="not_established"&&output.answer!=="No clear evidence found.")errors.push("Unknown field must use standard answer");
