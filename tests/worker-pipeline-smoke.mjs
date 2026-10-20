@@ -118,5 +118,12 @@ try{
  assert.notEqual(disputedData.verdict,"TRY","Conflicted fraud allegation must not trigger confident TRY");
  assert.ok(disputedData.unknowns.some(x=>/legitimacy/i.test(x)));
  delete uncertainFields.legitimacy;
+ // Third-party course scams must not change the underlying opportunity verdict.
+ evidenceByField.legitimacy="The opportunity itself is legitimate.";
+ const cleanLegitimacy=await (await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"})).json();
+ evidenceByField.legitimacy="The opportunity itself is legitimate. Some unrelated third-party course sellers are scammers.";
+ const courseWarning=await (await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"})).json();
+ assert.equal(courseWarning.verdict,cleanLegitimacy.verdict,"Third-party course warning must not downgrade opportunity verdict");
+ assert.deepEqual(courseWarning.blockers,cleanLegitimacy.blockers,"Third-party course warning must not add opportunity blockers");
  console.log("PASS: complete Worker API, 15 Tavily + 15 Groq mocks, 22 fields, derived assessments, existing result shape; zero credits.");
 }finally{globalThis.fetch=originalFetch;}
