@@ -4,6 +4,7 @@ import {handleResearch,FIELD_CONTRACTS} from "../worker-live.js";
 const originalFetch=globalThis.fetch;
 let tavilyCalls=0,groqCalls=0;
 const inputs=[];
+const uncertainFields={};
 const evidenceByField={
  opportunity:"Workers complete online tasks for clients.",
  workType:"This is freelance task work.",
@@ -39,8 +40,8 @@ try{
    assert.equal(input.evidence.length,1);
    assert.equal(body.model,"openai/gpt-oss-120b");
    return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({
-    answer:evidenceByField[input.field],status:"established",supporting_sources:["s1"],
-    missing:[],conflict:false
+    answer:evidenceByField[input.field],status:uncertainFields[input.field]?"partially_established":"established",supporting_sources:["s1"],
+    missing:uncertainFields[input.field]?["Conflicting claims need verification"]:[],conflict:Boolean(uncertainFields[input.field])
    })}}]}),{status:200});
   }
   throw Error("Unexpected external call: "+url);
@@ -107,5 +108,15 @@ try{
  const seventhData=await seventh.json();
  assert.equal(seventhData.verdict,"SKIP","Separate mandatory fee must block zero-budget users despite optional course");
  assert.ok(seventhData.blockers.some(x=>/starting cost/i.test(x)));
+ // A disputed fraud allegation must not produce a confident SKIP.
+ evidenceByField.startingCost="Registration has no mandatory fee.";
+ evidenceByField.legitimacy="This opportunity is a scam.";
+ uncertainFields.legitimacy=true;
+ const disputed=await handleResearch(request.clone(),{TAVILY_API_KEY:"mock",GROQ_API_KEY:"mock"});
+ const disputedData=await disputed.json();
+ assert.notEqual(disputedData.verdict,"SKIP","Conflicted fraud allegation must not trigger definitive SKIP");
+ assert.notEqual(disputedData.verdict,"TRY","Conflicted fraud allegation must not trigger confident TRY");
+ assert.ok(disputedData.unknowns.some(x=>/legitimacy/i.test(x)));
+ delete uncertainFields.legitimacy;
  console.log("PASS: complete Worker API, 15 Tavily + 15 Groq mocks, 22 fields, derived assessments, existing result shape; zero credits.");
 }finally{globalThis.fetch=originalFetch;}
