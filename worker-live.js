@@ -521,6 +521,11 @@ function mandatoryComputerOnly(answer){
   return /(?:requires?|must have|must use|need(?:s)?|only works on)\s+(?:(?:a|an|the)\s+)?(?:laptop|computer|desktop)\b/i.test(text)||
     /\b(?:laptop|computer|desktop)\s+(?:is|are)\s+(?:strictly\s+)?(?:required|mandatory|essential)\b/i.test(text);
 }
+function reliableForBlocker(field){
+  const u=field?.understanding;
+  return u?.status==="established" && u.conflict===false &&
+    Array.isArray(u.sourceUrls) && u.sourceUrls.length>0 && !u.error;
+}
 function makeVerdict(fields, profile) {
   const blockers = [];
   const cautions = [];
@@ -542,30 +547,30 @@ function makeVerdict(fields, profile) {
     };
   }
 
-  if (nigeriaAccessBlocked(nigeria)) {
+  if (reliableForBlocker(fields.nigeriaAccess) && nigeriaAccessBlocked(nigeria)) {
     blockers.push("Current research indicates that the opportunity is not accessible from Nigeria.");
   }
 
-  if (directLegitimacyBlocker(legitimacy)) {
+  if (reliableForBlocker(fields.legitimacy) && directLegitimacyBlocker(legitimacy)) {
     blockers.push("Current research contains a serious legitimacy or fraud warning.");
   }
 
   const cost = fields.startingCost.answer;
   if (profile?.budgetLabel) {
     const zeroBudget = /₦0|0\s*(?:naira|budget)/i.test(String(profile.budgetLabel));
-    if (zeroBudget && mandatoryStartingCost(cost)) {
+    if (zeroBudget && reliableForBlocker(fields.startingCost) && mandatoryStartingCost(cost)) {
       blockers.push("The research indicates a required starting cost while the selected budget is ₦0.");
     }
   }
 
   const device = fields.device.answer;
-  if (profile?.devices?.length && mandatoryComputerOnly(device) &&
+  if (profile?.devices?.length && reliableForBlocker(fields.device) && mandatoryComputerOnly(device) &&
       !profile.devices.some(x => /laptop|computer|desktop/i.test(x))) {
     blockers.push("The research indicates that a laptop or computer is required, but the selected profile does not include one.");
   }
 
   const kyc = fields.kyc.answer;
-  if (profile?.ids?.some(x => /^none$/i.test(String(x))) &&
+  if (reliableForBlocker(fields.kyc) && profile?.ids?.some(x => /^none$/i.test(String(x))) &&
       /(?:requires?|must provide|need(?:s)?|only accepts)[^.]{0,100}\b(?:id|passport|nin|national id|driver)/i.test(kyc)) {
     blockers.push("The research indicates an ID requirement while the selected profile has no ID.");
   }
@@ -576,6 +581,11 @@ function makeVerdict(fields, profile) {
 
   if (missing.length) unknowns.push(`Research did not clearly establish: ${missing.map(k=>contractFor(k).label).join(", ")}.`);
 
+  const unresolvedCritical=["nigeriaAccess","legitimacy","startingCost","device","kyc"].filter(k=>{
+    const u=fields[k]?.understanding;
+    return u?.conflict===true || (hasEvidence(fields[k]?.answer) && !reliableForBlocker(fields[k]));
+  });
+  if(unresolvedCritical.length)unknowns.push("Potential blockers need stronger evidence: "+unresolvedCritical.join(", ")+".");
   const strongNegative = blockers.length > 0;
   const enough = covered >= 8;
   let verdict = "NOT ENOUGH RELIABLE EVIDENCE";
@@ -590,7 +600,7 @@ function makeVerdict(fields, profile) {
       [fields.availability.answer,fields.earnings.answer,fields.withdrawal.answer,fields.startingCost.answer].join(" "),
       [/var(?:y|ies)/i,/not guaranteed/i,/depends/i,/waitlist/i,/invite[- ]only/i,/minimum/i,/threshold/i,/competition/i]
     );
-    if (uncertainty || cautionSignal) {
+    if (uncertainty || cautionSignal || unresolvedCritical.length) {
       verdict = "MAYBE";
       confidence = covered >= 11 ? "Medium" : "Low";
     } else {
