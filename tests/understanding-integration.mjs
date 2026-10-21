@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {FIELD_CONTRACTS} from "../worker-live.js";
-import {buildUnderstandingInput,validateUnderstanding,understandCoreField} from "../understanding.js";
+import {buildUnderstandingInput,validateUnderstanding,understandCoreField,UNDERSTANDING_SYSTEM} from "../understanding.js";
 const core=FIELD_CONTRACTS.filter(f=>f.group==="core");
 assert.equal(core.length,15);
 const contract=core.find(f=>f.key==="startingCost");
@@ -28,4 +28,16 @@ assert.equal(calls,1);assert.equal(result.status,"partially_established");
 assert.deepEqual(result.sourceUrls,["https://example.org/training"]);
 const empty=await understandCoreField({name:"Example platform",contract,packet:{...packet,sources:[]},apiKey:"offline-test-key",fetcher});
 assert.equal(empty.status,"not_established");assert.equal(calls,1);
+// Guard the interpretation contract: warnings about optional third parties are not opportunity facts.
+assert.match(UNDERSTANDING_SYSTEM,/identify the subject of each claim/i);
+assert.match(UNDERSTANDING_SYSTEM,/MUST NOT lower the opportunity's legitimacy status/i);
+assert.match(UNDERSTANDING_SYSTEM,/Do not treat unrelated negative claims as a conflict/i);
+const legitimacy=core.find(f=>f.key==="legitimacy");
+const thirdPartyOnly=buildUnderstandingInput({name:"Video channel creation",contract:legitimacy,packet:{
+ key:"legitimacy",answer:"A course seller is a scam",sources:[
+ {title:"Course review",url:"https://example.org/course",content:"An optional coaching seller deceived buyers; no claim about creating video channels."}
+ ]}});
+assert.equal(thirdPartyOnly.field,"legitimacy");
+assert.deepEqual(validateUnderstanding({answer:"No clear evidence found.",status:"not_established",supporting_sources:[],missing:["Direct evidence about video channel creation"],conflict:false},thirdPartyOnly),[]);
+assert.ok(validateUnderstanding({answer:"The opportunity is fraudulent",status:"established",supporting_sources:["s1"],missing:[],conflict:true},thirdPartyOnly).length);
 console.log("PASS: 15 core contracts, field-specific input, source-ID validation, mocked Groq call, fail-closed empty evidence. No API requests.");
