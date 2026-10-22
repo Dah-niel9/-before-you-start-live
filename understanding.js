@@ -59,6 +59,12 @@ export async function understandCoreField({name,contract,packet,apiKey,fetcher=f
   const body=await response.json();
   let output;
   try{output=JSON.parse(body.choices[0].message.content);}catch{throw Error("Understanding returned invalid JSON");}
+  // Preserve sourced partial answers when the model overstates completeness.
+  // Keep structural and citation validation strict: this is not a free pass for unsupported claims.
+  if(output && output.status==="established" &&
+     (output.conflict===true || (Array.isArray(output.missing) && output.missing.length>0))) {
+    output.status="partially_established";
+  }
   const errors=validateUnderstanding(output,input);
   if(errors.length)throw Error("Understanding validation failed: "+errors.join("; "));
   return {...output,sourceUrls:output.supporting_sources.map(id=>input.evidence.find(s=>s.id===id).url)};
