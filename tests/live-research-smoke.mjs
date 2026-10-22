@@ -21,9 +21,12 @@ const report={
  note:"One real research run. AI interpretations are not independent verification of cited pages.",
  coreSearches:15,derivedAssessments:7,
  verdict:result.verdict,confidence:result.confidence,reason:result.reason,
+ blockers:result.blockers,cautions:result.cautions,unknowns:result.unknowns,
  failedFields:result.failedFields,
  fields:Object.fromEntries(expected.map(key=>[key,{
   answer:result.fieldResearch[key].answer,
+  question:result.fieldResearch[key].question,
+  sources:result.fieldResearch[key].sources||[],
   understanding:result.fieldResearch[key].understanding||null
  }])),
  sources:result.sources?.map(s=>({url:s.url,title:s.title,researchKeys:s.researchKeys}))||[],
