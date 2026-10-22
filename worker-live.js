@@ -800,6 +800,7 @@ export async function handleResearch(request,env) {
         extract:p.extract||contractFor(key)?.extract||"",
         answer:p.answer||NO_EVIDENCE,
         sourceCount:Array.isArray(p.sources)?p.sources.length:0,
+        sources:Array.isArray(p.sources)?p.sources.map(x=>({title:x.title,url:x.url,excerpt:String(x.content||"").slice(0,1600)})):[],
         researchKey:key,
         ...(p.understanding?{understanding:p.understanding}:{})
       }])),
