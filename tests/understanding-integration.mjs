@@ -50,4 +50,23 @@ const thirdPartyOnly=buildUnderstandingInput({name:"Video channel creation",cont
 assert.equal(thirdPartyOnly.field,"legitimacy");
 assert.deepEqual(validateUnderstanding({answer:"No clear evidence found.",status:"not_established",supporting_sources:[],missing:["Direct evidence about video channel creation"],conflict:false},thirdPartyOnly),[]);
 assert.ok(validateUnderstanding({answer:"The opportunity is fraudulent",status:"established",supporting_sources:["s1"],missing:[],conflict:true},thirdPartyOnly).length);
+// Cross-opportunity regression: rules are generic, never tied to one named test case.
+const opportunityCost=core.find(f=>f.key==="opportunityCost");
+assert.ok(opportunityCost);
+for(const name of ["Fiverr freelancing","Affiliate marketing","Remote customer support","Video channel creation"]){
+ const legitInput=buildUnderstandingInput({name,contract:legitimacy,packet:{key:"legitimacy",sources:[
+  {title:"Operator documentation",url:"https://example.org/operator",content:"The operator provides an established service."},
+  {title:"Individual outcome",url:"https://example.org/story",content:"One participant earned nothing despite trying."}
+ ]}});
+ assert.equal(legitInput.evidence.length,2);
+ const costInput=buildUnderstandingInput({name,contract:opportunityCost,packet:{key:"opportunityCost",sources:[
+  {title:"Tool convenience",url:"https://example.org/tool",content:"A tool makes tasks quicker."},
+  {title:"Workload",url:"https://example.org/work",content:"Participants spend several hours a week."}
+ ]}});
+ assert.equal(costInput.evidence.length,2);
+}
+assert.match(UNDERSTANDING_SYSTEM,/does not contradict evidence that an operator or activity exists/i);
+assert.match(UNDERSTANDING_SYSTEM,/Only set conflict when credible evidence directly disagrees/i);
+assert.match(UNDERSTANDING_SYSTEM,/NOT by itself evidence of opportunity cost/i);
+assert.match(UNDERSTANDING_SYSTEM,/do not claim a quantified opportunity cost/i);
 console.log("PASS: 15 core contracts, field-specific input, source-ID validation, mocked Groq call, fail-closed empty evidence. No API requests.");
