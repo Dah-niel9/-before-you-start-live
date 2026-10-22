@@ -26,6 +26,16 @@ const fetcher=async (url,options)=>{
 const result=await understandCoreField({name:"Example platform",contract,packet,apiKey:"offline-test-key",fetcher});
 assert.equal(calls,1);assert.equal(result.status,"partially_established");
 assert.deepEqual(result.sourceUrls,["https://example.org/training"]);
+// Regression for controlled live test #4: preserve a sourced answer instead of erasing it.
+const inconsistentFetcher=async()=>({ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({
+ answer:"Creators coordinate outsourced scripting, editing, and publishing.",status:"established",
+ supporting_sources:["s1"],missing:["Exact workflow varies"],conflict:false
+})}}]})});
+const repaired=await understandCoreField({name:"Example platform",contract,packet,apiKey:"offline-test-key",fetcher:inconsistentFetcher});
+assert.equal(repaired.status,"partially_established");
+assert.match(repaired.answer,/Creators coordinate/);
+assert.equal(repaired.sourceUrls.length,1);
+assert.deepEqual(repaired.missing,["Exact workflow varies"]);
 const empty=await understandCoreField({name:"Example platform",contract,packet:{...packet,sources:[]},apiKey:"offline-test-key",fetcher});
 assert.equal(empty.status,"not_established");assert.equal(calls,1);
 // Guard the interpretation contract: warnings about optional third parties are not opportunity facts.
