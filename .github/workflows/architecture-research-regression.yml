@@ -11,5 +11,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --input-type=module --check < worker-live.js
-      - run: node architecture-research-regression.test.mjs
+      - name: Check current ESM modules
+        run: |
+          node --check worker-live.js
+          node --check understanding.js
+          node --check derived-assessments.js
+      - name: Validate evidence mapping and interpretation (offline)
+        run: |
+          node tests/evidence-mapping-fixtures.mjs
+          node tests/understanding-integration.mjs
