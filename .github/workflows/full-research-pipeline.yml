@@ -1,22 +1,17 @@
 name: Full Research Pipeline
-
 on:
   push:
     branches: ["architecture-research-v1"]
   workflow_dispatch:
-
 jobs:
-  youtube-automation-full-pipeline:
+  full-pipeline-offline:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run full YouTube Automation research pipeline
-        env:
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-        run: node full-research-pipeline.test.mjs
-# trigger full pipeline
-
-# enforce field-quality assertions
+      - name: Full 15-core plus 7-derived Worker pipeline (mocked, zero credits)
+        run: node tests/worker-pipeline-smoke.mjs
+      - name: Groq rate-limit and retry checks (mocked)
+        run: node tests/groq-rate-limit.mjs
