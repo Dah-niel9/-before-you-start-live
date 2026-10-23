@@ -8,4 +8,4 @@ binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
 [secrets]
-required = ["TAVILY_API_KEY"]
+required = ["TAVILY_API_KEY", "GROQ_API_KEY"]
