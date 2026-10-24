@@ -743,20 +743,17 @@ export async function handleResearch(request,env) {
     const results=await Promise.all(coreContracts.map(contract =>
       runFieldResearch({env,name,claim,url,profile,contract})));
     await interpretWithRateLimit(results.map((result,index)=>async()=>{
-      try {
-        const understood=await understandCoreField({name,contract:coreContracts[index],packet:result.packet,apiKey:env.GROQ_API_KEY});
-        result.packet.answer=understood.answer;
-        result.packet.understanding={status:understood.status,missing:understood.missing,
-          conflict:understood.conflict,sourceUrls:understood.sourceUrls};
-      } catch(error) {
-        // An exhausted Groq rate limit must not discard all Tavily research.
-        // Preserve the other fields and report this field as unavailable.
-        result.packet.answer=NO_EVIDENCE;
-        result.packet.understanding={status:"not_established",missing:["Understanding could not verify this field"],
-          conflict:false,sourceUrls:[],error:"Understanding unavailable"};
-        result.error=error instanceof Error?error.message:String(error);
-      }
-    }),{spacingMs:1500,maxRetries:1,maxWaitMs:10000});
+      const understood=await understandCoreField({name,contract:coreContracts[index],packet:result.packet,apiKey:env.GROQ_API_KEY});
+      result.packet.answer=understood.answer;
+      result.packet.understanding={status:understood.status,missing:understood.missing,
+        conflict:understood.conflict,sourceUrls:understood.sourceUrls};
+    }),{spacingMs:1500,maxRetries:1,maxWaitMs:10000,onError:(error,index)=>{
+      const result=results[index];
+      result.packet.answer=NO_EVIDENCE;
+      result.packet.understanding={status:"not_established",missing:["Understanding could not verify this field"],
+        conflict:false,sourceUrls:[],error:"Understanding unavailable"};
+      result.error=error instanceof Error?error.message:String(error);
+    }});
 
     const fields={};
     const allSources=[];
@@ -766,6 +763,12 @@ export async function handleResearch(request,env) {
       allSources.push(...result.packet.sources.map(s=>({...s,researchKey:result.packet.key})));
       if (!result.packet.ok || result.packet.understanding?.error) failed.push({key:result.packet.key,detail:result.error});
     }
+
+    // Log aggregate research health without exposing evidence, profile or API secrets.
+    console.info("Research field diagnostics",JSON.stringify({coreCount:coreContracts.length,
+      fieldsWithSources:results.filter(r=>r.packet.sources.length>0).length,
+      interpreted:results.filter(r=>r.packet.understanding?.status!=="not_established").length,
+      failed:failed.map(x=>({key:x.key,detail:String(x.detail||"").slice(0,120)}))}));
 
     Object.assign(fields,deriveAssessments(fields,FIELD_CONTRACTS,profile));
 
