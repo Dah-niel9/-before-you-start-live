@@ -1,0 +1,15 @@
+name: Live Integrity Zero-Credit Tests
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Zero-credit regression tests
+        run: node --test live-integrity-regression.test.mjs

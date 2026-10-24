@@ -45,7 +45,8 @@ function cleanAnswer(value) {
     .replace(/^According to (?:the )?sources?:?\s*/i, "");
   if (!text) return NO_EVIDENCE;
   if (/^(no reliable evidence|no clear evidence|not enough evidence|unknown|not found)\.?$/i.test(text)) return NO_EVIDENCE;
-  return text.length > 650 ? text.slice(0, 647).trimEnd() + "..." : text;
+  // Never cut a verified answer mid-sentence: preserve the full interpreted text.
+  return text;
 }
 
 function fieldGuard(key) {
@@ -512,12 +513,14 @@ function nigeriaAccessBlocked(answer){
     return /\b(?:not\s+(?:available|supported|eligible|allowed)|unavailable|excluded|blocked|prohibited|banned|ineligible)\b/i.test(clause);
   });
 }
-function mandatoryComputerOnly(answer){
+export function mandatoryComputerOnly(answer){
   const text=String(answer||"");
   // A phone/computer alternative is not a computer-only requirement.
   const alternative=/(?:smartphone|mobile phone|android|iphone|tablet|phone)\b[^.\n]{0,120}\b(?:or|either|alternatively)\b[^.\n]{0,120}\b(?:laptop|computer|desktop)\b/i.test(text)||
     /(?:laptop|computer|desktop)\b[^.\n]{0,120}\b(?:or|either|alternatively)\b[^.\n]{0,120}\b(?:smartphone|mobile phone|android|iphone|tablet|phone)\b/i.test(text);
-  if(alternative||/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only)/i.test(text))return false;
+  // Negated computer requirements and explicit phone alternatives cannot be blockers.
+  // This covers "No laptop or desktop is required" (the observed live failure).
+  if(alternative||/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only|no\s+(?:laptop|computer|desktop)(?:\s+(?:or|and)\s+(?:laptop|computer|desktop))?\s+(?:is|are)\s+(?:required|mandatory|needed))/i.test(text))return false;
   return /(?:requires?|must have|must use|need(?:s)?|only works on)\s+(?:(?:a|an|the)\s+)?(?:laptop|computer|desktop)\b/i.test(text)||
     /\b(?:laptop|computer|desktop)\s+(?:is|are)\s+(?:strictly\s+)?(?:required|mandatory|essential)\b/i.test(text);
 }
@@ -740,20 +743,17 @@ export async function handleResearch(request,env) {
     const results=await Promise.all(coreContracts.map(contract =>
       runFieldResearch({env,name,claim,url,profile,contract})));
     await interpretWithRateLimit(results.map((result,index)=>async()=>{
-      try {
-        const understood=await understandCoreField({name,contract:coreContracts[index],packet:result.packet,apiKey:env.GROQ_API_KEY});
-        result.packet.answer=understood.answer;
-        result.packet.understanding={status:understood.status,missing:understood.missing,
-          conflict:understood.conflict,sourceUrls:understood.sourceUrls};
-      } catch(error) {
-        // An exhausted Groq rate limit must not discard all Tavily research.
-        // Preserve the other fields and report this field as unavailable.
-        result.packet.answer=NO_EVIDENCE;
-        result.packet.understanding={status:"not_established",missing:["Understanding could not verify this field"],
-          conflict:false,sourceUrls:[],error:"Understanding unavailable"};
-        result.error=error instanceof Error?error.message:String(error);
-      }
-    }),{spacingMs:1500,maxRetries:1,maxWaitMs:10000});
+      const understood=await understandCoreField({name,contract:coreContracts[index],packet:result.packet,apiKey:env.GROQ_API_KEY});
+      result.packet.answer=understood.answer;
+      result.packet.understanding={status:understood.status,missing:understood.missing,
+        conflict:understood.conflict,sourceUrls:understood.sourceUrls};
+    }),{spacingMs:1500,maxRetries:1,maxWaitMs:10000,onError:(error,index)=>{
+      const result=results[index];
+      result.packet.answer=NO_EVIDENCE;
+      result.packet.understanding={status:"not_established",missing:["Understanding could not verify this field"],
+        conflict:false,sourceUrls:[],error:"Understanding unavailable"};
+      result.error=error instanceof Error?error.message:String(error);
+    }});
 
     const fields={};
     const allSources=[];
@@ -763,6 +763,12 @@ export async function handleResearch(request,env) {
       allSources.push(...result.packet.sources.map(s=>({...s,researchKey:result.packet.key})));
       if (!result.packet.ok || result.packet.understanding?.error) failed.push({key:result.packet.key,detail:result.error});
     }
+
+    // Log aggregate research health without exposing evidence, profile or API secrets.
+    console.info("Research field diagnostics",JSON.stringify({coreCount:coreContracts.length,
+      fieldsWithSources:results.filter(r=>r.packet.sources.length>0).length,
+      interpreted:results.filter(r=>r.packet.understanding?.status!=="not_established").length,
+      failed:failed.map(x=>({key:x.key,detail:String(x.detail||"").slice(0,120)}))}));
 
     Object.assign(fields,deriveAssessments(fields,FIELD_CONTRACTS,profile));
 
