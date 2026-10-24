@@ -746,13 +746,14 @@ export async function handleResearch(request,env) {
         result.packet.understanding={status:understood.status,missing:understood.missing,
           conflict:understood.conflict,sourceUrls:understood.sourceUrls};
       } catch(error) {
-        if(error?.status===429)throw error; // Retry this Groq call, not the Tavily search.
+        // An exhausted Groq rate limit must not discard all Tavily research.
+        // Preserve the other fields and report this field as unavailable.
         result.packet.answer=NO_EVIDENCE;
         result.packet.understanding={status:"not_established",missing:["Understanding could not verify this field"],
           conflict:false,sourceUrls:[],error:"Understanding unavailable"};
         result.error=error instanceof Error?error.message:String(error);
       }
-    }));
+    }),{spacingMs:1500,maxRetries:1,maxWaitMs:10000});
 
     const fields={};
     const allSources=[];
