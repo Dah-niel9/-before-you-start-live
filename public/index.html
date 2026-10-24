@@ -513,7 +513,7 @@ function showLiveResearchResult(name,data,u){
     blockers:Array.isArray(data.blockers)?data.blockers:[],
     fits:Array.isArray(data.fits)?data.fits:[],
     unknowns:Array.isArray(data.unknowns)?data.unknowns:[],
-    changes:[cleanResearchText(data.changes||'Confirm the important requirements, payment terms and current availability before committing serious time or money.',400)]
+    changes:(Array.isArray(data.changes)?data.changes:[data.changes||'Confirm the important requirements, payment terms and current availability before committing serious time or money.']).map(x=>cleanResearchText(x,400))
   };
   showResult(name,researchO,u,r,true,'research');
 }
