@@ -45,7 +45,8 @@ function cleanAnswer(value) {
     .replace(/^According to (?:the )?sources?:?\s*/i, "");
   if (!text) return NO_EVIDENCE;
   if (/^(no reliable evidence|no clear evidence|not enough evidence|unknown|not found)\.?$/i.test(text)) return NO_EVIDENCE;
-  return text.length > 650 ? text.slice(0, 647).trimEnd() + "..." : text;
+  // Never cut a verified answer mid-sentence: preserve the full interpreted text.
+  return text;
 }
 
 function fieldGuard(key) {
@@ -512,12 +513,14 @@ function nigeriaAccessBlocked(answer){
     return /\b(?:not\s+(?:available|supported|eligible|allowed)|unavailable|excluded|blocked|prohibited|banned|ineligible)\b/i.test(clause);
   });
 }
-function mandatoryComputerOnly(answer){
+export function mandatoryComputerOnly(answer){
   const text=String(answer||"");
   // A phone/computer alternative is not a computer-only requirement.
   const alternative=/(?:smartphone|mobile phone|android|iphone|tablet|phone)\b[^.\n]{0,120}\b(?:or|either|alternatively)\b[^.\n]{0,120}\b(?:laptop|computer|desktop)\b/i.test(text)||
     /(?:laptop|computer|desktop)\b[^.\n]{0,120}\b(?:or|either|alternatively)\b[^.\n]{0,120}\b(?:smartphone|mobile phone|android|iphone|tablet|phone)\b/i.test(text);
-  if(alternative||/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only)/i.test(text))return false;
+  // Negated computer requirements and explicit phone alternatives cannot be blockers.
+  // This covers "No laptop or desktop is required" (the observed live failure).
+  if(alternative||/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only|no\\s+(?:(?:laptop|computer|desktop)(?:\\s*(?:,|or|and)\\s*)?)+(?:is|are)\\s+(?:required|mandatory|needed))/i.test(text))return false;
   return /(?:requires?|must have|must use|need(?:s)?|only works on)\s+(?:(?:a|an|the)\s+)?(?:laptop|computer|desktop)\b/i.test(text)||
     /\b(?:laptop|computer|desktop)\s+(?:is|are)\s+(?:strictly\s+)?(?:required|mandatory|essential)\b/i.test(text);
 }
