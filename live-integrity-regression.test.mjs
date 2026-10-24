@@ -9,7 +9,7 @@ test("phone-supported research must not trigger a laptop blocker",()=>{
 });
 test("explicit mandatory laptop remains a blocker",()=>{
   assert.equal(mandatoryComputerOnly("A laptop is required to participate."),true);
-  assert.equal(mandatoryComputerOnly("A desktop computer is mandatory."),true);
+  assert.equal(mandatoryComputerOnly("A desktop is mandatory."),true);
 });
 
 import { interpretWithRateLimit } from "./groq-rate-limit.js";
