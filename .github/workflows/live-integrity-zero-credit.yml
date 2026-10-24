@@ -12,4 +12,4 @@ jobs:
         with:
           node-version: '22'
       - name: Zero-credit regression tests
-        run: node --test live-integrity-regression.test.mjs
+        run: node --test live-integrity-regression.test.mjs live-research.test.mjs
