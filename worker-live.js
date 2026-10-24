@@ -520,7 +520,7 @@ export function mandatoryComputerOnly(answer){
     /(?:laptop|computer|desktop)\b[^.\n]{0,120}\b(?:or|either|alternatively)\b[^.\n]{0,120}\b(?:smartphone|mobile phone|android|iphone|tablet|phone)\b/i.test(text);
   // Negated computer requirements and explicit phone alternatives cannot be blockers.
   // This covers "No laptop or desktop is required" (the observed live failure).
-  if(alternative||/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only|no\\s+(?:(?:laptop|computer|desktop)(?:\\s*(?:,|or|and)\\s*)?)+(?:is|are)\\s+(?:required|mandatory|needed))/i.test(text))return false;
+  if(alternative||/(?:optional|recommended|preferable|helpful|not required|not mandatory|not necessary|without a laptop|phone alone|phone only|no\s+(?:laptop|computer|desktop)(?:\s+(?:or|and)\s+(?:laptop|computer|desktop))?\s+(?:is|are)\s+(?:required|mandatory|needed))/i.test(text))return false;
   return /(?:requires?|must have|must use|need(?:s)?|only works on)\s+(?:(?:a|an|the)\s+)?(?:laptop|computer|desktop)\b/i.test(text)||
     /\b(?:laptop|computer|desktop)\s+(?:is|are)\s+(?:strictly\s+)?(?:required|mandatory|essential)\b/i.test(text);
 }
