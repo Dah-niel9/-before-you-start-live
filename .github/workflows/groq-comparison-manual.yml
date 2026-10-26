@@ -1,5 +1,8 @@
 name: Groq Comparison Manual
 on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths: [.github/workflows/groq-comparison-manual.yml]
   workflow_dispatch:
 permissions:
   contents: read
