@@ -12,4 +12,4 @@ jobs:
         with:
           node-version: '22'
       - name: Run architecture baseline and integrity tests (no API calls)
-        run: node --test understanding-architecture-audit.test.mjs live-integrity-regression.test.mjs
+        run: node --test understanding-architecture-audit.test.mjs understanding-experiment.test.mjs live-integrity-regression.test.mjs
