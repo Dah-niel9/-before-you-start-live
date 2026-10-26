@@ -1,0 +1,15 @@
+name: Understanding Architecture Audit (Zero Credit)
+on:
+  push:
+    branches: [offline-understanding-comparison]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run architecture baseline and integrity tests (no API calls)
+        run: node --test understanding-architecture-audit.test.mjs live-integrity-regression.test.mjs
