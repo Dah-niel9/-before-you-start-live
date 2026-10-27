@@ -1,0 +1,45 @@
+
+name: Individual Five Field Smoke
+
+on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths:
+      - .github/workflows/individual-five-smoke.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  individual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download saved Tavily evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: unified-15-real-evidence-report
+          run-id: 40426461024
+          github-token: ${{ github.token }}
+          path: saved-evidence
+
+      - name: Run individual Understanding test
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node individual-five-saved-evidence-smoke.mjs
+
+      - name: Save results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: individual-five-smoke-results
+          path: tests/artifacts/individual-five-smoke.json
+          if-no-files-found: warn
+  
