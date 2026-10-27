@@ -1,0 +1,48 @@
+name: Phase Two Saved Evidence Comparison
+on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths:
+      - .github/workflows/phase-two-saved-comparison.yml
+permissions:
+  contents: read
+  actions: read
+jobs:
+  compare:
+    strategy:
+      fail-fast: false
+      matrix:
+        opportunity: ["YouTube automation", "Forex trading"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download archived Tavily evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: unified-15-real-evidence-report
+          run-id: 40426461024
+          github-token: ${{ github.token }}
+          path: saved-evidence
+      - name: Run grouped remaining ten
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPPORTUNITY: ${{ matrix.opportunity }}
+        run: node grouped-ten-saved-evidence.mjs
+      - name: Run individual remaining ten
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPPORTUNITY: ${{ matrix.opportunity }}
+        run: node individual-ten-saved-evidence.mjs
+      - name: Upload all responses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-two-${{ strategy.job-index }}
+          path: tests/artifacts/*.json
+          if-no-files-found: warn
