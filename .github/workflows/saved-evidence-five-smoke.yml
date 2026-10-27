@@ -2,6 +2,9 @@
 name: Saved Evidence Five Field Smoke
 
 on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths: [.github/workflows/saved-evidence-five-smoke.yml]
   workflow_dispatch:
 
 permissions:
