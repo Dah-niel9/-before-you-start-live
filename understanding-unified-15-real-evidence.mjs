@@ -53,7 +53,7 @@ for(const name of opportunities){
  }
  report.opportunities.push({name,packets,interpretation,checks,all15Returned:checks.every(c=>c.hasAnswer&&c.validStatus&&c.invalidSources.length===0)});
 }
-mkdir("tests/artifacts",{recursive:true});
+await mkdir("tests/artifacts",{recursive:true});
 await writeFile("tests/artifacts/unified-15-real-evidence.json",JSON.stringify(report,null,2)+"\n");
 console.log(JSON.stringify({event:"unified_15_field_real_evidence_complete",usage:report.usage,failures:report.failures.length,opportunities:report.opportunities.map(o=>({name:o.name,all15Returned:o.all15Returned,fieldsReturned:o.checks.filter(c=>c.hasAnswer).length,invalidCitations:o.checks.reduce((n,c)=>n+c.invalidSources.length,0)}))}));
 if(report.failures.length||report.opportunities.some(o=>!o.all15Returned))process.exitCode=1;
