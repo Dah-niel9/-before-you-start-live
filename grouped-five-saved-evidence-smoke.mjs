@@ -18,9 +18,9 @@ const raw=await res.text();
 const report={opportunity:opportunity.name,source:"saved Tavily archive from GitHub run 40426461024",fields,groqStatus:res.status,response:raw.slice(0,50000)};
 if(res.ok){
  const data=JSON.parse(raw);report.usage=data.usage;report.response=data.choices?.[0]?.message?.content;
- try{report.parsed=JSON.parse(report.response);}catch{report.parseError=true;}
+ try{report.parsed=JSON.parse(report.response);report.answers=report.parsed.fields||report.parsed;}catch{report.parseError=true;}
 }
 await mkdir("tests/artifacts",{recursive:true});
 await writeFile("tests/artifacts/grouped-five-smoke.json",JSON.stringify(report,null,2)+"\n");
-console.log(JSON.stringify({groqStatus:res.status,usage:report.usage||null,fieldsAnswered:Object.keys(report.parsed?.fields||{}),error:res.ok?null:raw.slice(0,500)}));
-if(!res.ok||chosen.some(k=>!report.parsed?.fields?.[k]))process.exitCode=1;
+console.log(JSON.stringify({groqStatus:res.status,usage:report.usage||null,fieldsAnswered:Object.keys(report.answers||{}),error:res.ok?null:raw.slice(0,500)}));
+if(!res.ok||chosen.some(k=>!report.answers?.[k]))process.exitCode=1;
