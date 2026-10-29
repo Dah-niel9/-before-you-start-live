@@ -32,7 +32,7 @@ for(const opportunity of archive.opportunities){
       method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},
       body:JSON.stringify({model,temperature:0,max_completion_tokens:method==='grouped'?2200:1250,
        response_format:{type:'json_object'},
-       messages:[{role:'system',content:contract},{role:'user',content:JSON.stringify(input)}]})
+       messages:[{role:'system',content:contract+(attemptNo>1?' IMPORTANT: Output exactly one valid JSON object with a fields object, no markdown, no extra commentary.':'')},{role:'user',content:JSON.stringify(input)}]})
      });
      item.httpStatus=res.status;
      const raw=await res.text();
@@ -50,7 +50,7 @@ for(const opportunity of archive.opportunities){
     }catch(error){item.error=String(error);}
     report.requests.push(item);await save();
     console.log(JSON.stringify({id,attemptNo,httpStatus:item.httpStatus,valid:item.valid,tokens:item.usage?.total_tokens,error:item.error?.slice(0,180)}));
-    if(!succeeded&&item.httpStatus!==429&&item.httpStatus!==503)break;
+    if(!succeeded&&![400,429,503].includes(item.httpStatus))break;
    }
    if(!succeeded){report.completed=false;await save();throw Error('Failed request '+id+'; saved all responses');}
   }
