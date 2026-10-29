@@ -26,6 +26,13 @@ jobs:
           run-id: 40426461024
           github-token: ${{ github.token }}
           path: saved-evidence
+      - name: Restore previous successful requests
+        uses: actions/download-artifact@v4
+        with:
+          name: phase3-controlled-results
+          run-id: 40971849653
+          github-token: ${{ github.token }}
+          path: tests/artifacts
       - name: Verify offline fairness first
         run: node phase3-offline-harness.mjs
       - name: Sequential controlled retest
