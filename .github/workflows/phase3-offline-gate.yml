@@ -1,0 +1,26 @@
+name: Phase 3 Offline Fairness Gate
+on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths:
+      - .github/workflows/phase3-offline-gate.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: unified-15-real-evidence-report
+          run-id: 40426461024
+          github-token: ${{ github.token }}
+          path: saved-evidence
+      - name: Verify evidence and parser
+        run: node phase3-offline-harness.mjs
