@@ -1,0 +1,50 @@
+name: Complete Forex Comparison Safely
+on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths:
+      - .github/workflows/complete-forex-comparison.yml
+permissions:
+  contents: read
+  actions: read
+jobs:
+  forex:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: unified-15-real-evidence-report
+          run-id: 40426461024
+          github-token: ${{ github.token }}
+          path: saved-evidence
+      - name: Forex grouped first five
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node forex-grouped-first-five.mjs
+      - name: Pause for TPM reset
+        run: sleep 90
+      - name: Forex grouped last five
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node forex-grouped-last-five.mjs
+      - name: Pause for TPM reset again
+        run: sleep 90
+      - name: Forex individual first five
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node forex-individual-first-five.mjs
+      - name: Preserve all Groq responses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forex-comparison-completion
+          path: tests/artifacts/*.json
+          if-no-files-found: warn

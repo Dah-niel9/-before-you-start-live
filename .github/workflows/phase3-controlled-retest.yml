@@ -1,0 +1,48 @@
+name: Phase 3 Controlled Groq Retest
+on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths:
+      - .github/workflows/phase3-controlled-retest.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: phase3-controlled-groq
+  cancel-in-progress: false
+jobs:
+  retest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: unified-15-real-evidence-report
+          run-id: 40426461024
+          github-token: ${{ github.token }}
+          path: saved-evidence
+      - name: Restore previous successful requests
+        uses: actions/download-artifact@v4
+        with:
+          name: phase3-controlled-results
+          run-id: 40971849653
+          github-token: ${{ github.token }}
+          path: tests/artifacts
+      - name: Verify offline fairness first
+        run: node phase3-offline-harness.mjs
+      - name: Sequential controlled retest
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node phase3-controlled-comparison.mjs
+      - name: Save responses even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase3-controlled-results
+          path: tests/artifacts/phase3-controlled-results.json
+          if-no-files-found: warn

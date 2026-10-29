@@ -1,0 +1,29 @@
+name: Groq Comparison Manual
+on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths: [.github/workflows/groq-comparison-manual.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test understanding-experiment.test.mjs
+      - name: Compare using Groq
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node understanding-groq-comparison.mjs
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: groq-comparison-results
+          path: tests/artifacts/understanding-comparison.json
+          if-no-files-found: warn

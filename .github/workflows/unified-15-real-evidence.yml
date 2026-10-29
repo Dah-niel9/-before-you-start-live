@@ -1,0 +1,30 @@
+name: Unified 15 Fields Real Evidence Test
+on:
+  push:
+    branches: [offline-understanding-comparison]
+    paths: [understanding-unified-15-real-evidence.mjs, .github/workflows/unified-15-real-evidence.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unified-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run real Tavily evidence plus unified Groq test
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node understanding-unified-15-real-evidence.mjs
+      - name: Upload evidence and full answers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unified-15-real-evidence-report
+          path: tests/artifacts/unified-15-real-evidence.json
+          if-no-files-found: warn
+          retention-days: 14
